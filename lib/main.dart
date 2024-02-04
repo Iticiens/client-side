@@ -117,21 +117,66 @@ class _HomeState extends State<Home> {
     return ap_ip;
   }
 
+  String get displayValue {
+    switch (displayValueKey) {
+      case "temperature":
+        return "$temperature °C";
+      case "fahrenheit":
+        return "$fahrenheit °C";
+      case "humidity":
+        return "$humidity %";
+      case "heatindexC":
+        return "$heatindexC °C";
+      case "heatindexF":
+        return "$heatindexF °C";
+      case "tankHeight-distance":
+        return "${tankHeight - distance}";
+      case "remains":
+        return "${(tankHeight - distance) ~/ (tankHeight / 100)}%";
+      default:
+        return "$distance cm";
+    }
+  }
+
+//      "temperature"=>  "$temperature °C",
+//       "fahrenheit"=>  "$fahrenheit °F",
+//       "humidity"=>  "$humidity %",
+//       "heatindexC"=>  "$heatindexC °C",
+//       "heatindexF"=>  "$heatindexF °F",
+//       "distance"=>  "$distance cm",
+
+  List<String> displayValueKeys = const [
+    "temperature",
+    "fahrenheit",
+    "humidity",
+    "heatindexC",
+    "heatindexF",
+    "distance",
+    "tankHeight-distance",
+    "remains",
+  ];
+
   num time = 0;
+  String displayValueKey = "temperature";
   String ap_ip = "192.168.4.1";
   String ap_status = "active";
-  String wifi_ip = "192.168.1.7";
+  String wifi_ip = "192.168.1.6";
   String wifiStatus = "active";
   String wifiSSID = "DJAWEB_IOT";
   num readRate = 100;
   num flaged = 0;
   num temperature = 0;
+  num distance = 0;
+  num averageDistance = 0;
+  num realDistance = 0;
+  num tankHeight = 0;
   num fahrenheit = 0;
   num humidity = 0;
   num heatindexC = 0;
   num heatindexF = 0;
   late List<num> temperatures = [];
   late List<num> humidities = [];
+  late List<num> distances = [];
 
   WebSocketChannel? channel;
   StreamSubscription? subscription;
@@ -165,90 +210,101 @@ class _HomeState extends State<Home> {
     }
 
     subscription?.cancel();
-    subscription = channel!.stream.listen(
-      (event) {
-        if (currentConnectionStatus != ConnectionStatus.connected) {
+    try {
+      subscription = channel!.stream.listen(
+        (event) {
+          if (currentConnectionStatus != ConnectionStatus.connected) {
+            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+            ScaffoldMessenger.maybeOf(context)?.showSnackBar(
+              SnackBar(
+                  backgroundColor: Colors.green,
+                  behavior: SnackBarBehavior.floating,
+                  width: 400.0,
+                  content: Text('Connected to $currentHost | using ${connectionType == ConnectionType.wifi ? 'wifi' : 'ap'}'),
+                  action: SnackBarAction(
+                    label: 'hide',
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                    },
+                  )),
+            );
+          }
+          if (connectionType == ConnectionType.wifi) {
+            wifiConnectionStatus = ConnectionStatus.connected;
+          } else if (connectionType == ConnectionType.ap) {
+            apConnectionStatus = ConnectionStatus.connected;
+          }
+          final data = jsonDecode(event);
+          print(data);
+          setState(() {
+            time = data['time'] ?? time;
+            ap_ip = data['ap_ip'] ?? ap_ip;
+            ap_status = data['ap_status'] ?? ap_status;
+            wifi_ip = data['wifi_ip'] ?? wifi_ip;
+            wifiStatus = data['wifi_status'] ?? wifiStatus;
+            wifiSSID = data['wifi_ssid'] ?? wifiSSID;
+            readRate = data['readRate'] ?? readRate;
+            flaged = data['flaged'] ?? flaged;
+            distance = num.tryParse((data['distance'] ?? 0).toStringAsFixed(2)) ?? distance;
+            tankHeight = num.tryParse((data['tankHeight'] ?? 0).toStringAsFixed(2)) ?? tankHeight;
+            realDistance = num.tryParse((data['realDistance'] ?? 0).toStringAsFixed(2)) ?? realDistance;
+            averageDistance = num.tryParse((data['averageDistance'] ?? 0).toStringAsFixed(2)) ?? averageDistance;
+            temperature = num.tryParse((data['temperature'] ?? 0).toStringAsFixed(2)) ?? temperature;
+            fahrenheit = num.tryParse((data['fahrenheit'] ?? 0).toStringAsFixed(2)) ?? fahrenheit;
+            humidity = num.tryParse((data['humidity'] ?? 0).toStringAsFixed(2)) ?? humidity;
+            heatindexC = num.tryParse((data['heatindexC'] ?? 0).toStringAsFixed(2)) ?? heatindexC;
+            heatindexF = num.tryParse((data['heatindexF'] ?? 0).toStringAsFixed(2)) ?? heatindexF;
+            temperatures.add(temperature);
+            humidities.add(humidity);
+            distances.add(distance);
+            if (distances.length > 50) {
+              distances.removeAt(0);
+            }
+            if (temperatures.length > 50) {
+              temperatures.removeAt(0);
+            }
+            if (temperatures.length > 50) {
+              temperatures.removeAt(0);
+            }
+          });
+        },
+        onError: (error) {
+          setState(() {
+            if (connectionType == ConnectionType.wifi) {
+              wifiConnectionStatus = ConnectionStatus.disconnected;
+            } else if (connectionType == ConnectionType.ap) {
+              apConnectionStatus = ConnectionStatus.disconnected;
+            }
+          });
           ScaffoldMessenger.of(context).hideCurrentSnackBar();
           ScaffoldMessenger.maybeOf(context)?.showSnackBar(
             SnackBar(
-                backgroundColor: Colors.green,
                 behavior: SnackBarBehavior.floating,
                 width: 400.0,
-                content: Text('Connected to $currentHost | using ${connectionType == ConnectionType.wifi ? 'wifi' : 'ap'}'),
+                content: Text('Failed to connect to $currentHost | using ${connectionType == ConnectionType.wifi ? 'wifi' : 'ap'}'),
                 action: SnackBarAction(
-                  label: 'hide',
+                  label: 'reconnect',
                   onPressed: () {
+                    initWebSocket(connectionType);
                     ScaffoldMessenger.of(context).hideCurrentSnackBar();
                   },
                 )),
           );
-        }
-        if (connectionType == ConnectionType.wifi) {
-          wifiConnectionStatus = ConnectionStatus.connected;
-        } else if (connectionType == ConnectionType.ap) {
-          apConnectionStatus = ConnectionStatus.connected;
-        }
-        final data = jsonDecode(event);
-        print(data);
-        setState(() {
-          time = data['time'] ?? time;
-          ap_ip = data['ap_ip'] ?? ap_ip;
-          ap_status = data['ap_status'] ?? ap_status;
-          wifi_ip = data['wifi_ip'] ?? wifi_ip;
-          wifiStatus = data['wifi_status'] ?? wifiStatus;
-          wifiSSID = data['wifi_ssid'] ?? wifiSSID;
-          readRate = data['readRate'] ?? readRate;
-          flaged = data['flaged'] ?? flaged;
-          temperature = num.tryParse((data['temperature']??0).toStringAsFixed(2)) ?? temperature;
-          fahrenheit = num.tryParse((data['fahrenheit']??0).toStringAsFixed(2)) ?? fahrenheit;
-          humidity = num.tryParse((data['humidity']??0).toStringAsFixed(2)) ?? humidity;
-          heatindexC = num.tryParse((data['heatindexC']??0).toStringAsFixed(2)) ?? heatindexC;
-          heatindexF = num.tryParse((data['heatindexF']??0).toStringAsFixed(2)) ?? heatindexF;
-          temperatures.add(temperature);
-          humidities.add(humidity);
-          if (temperatures.length > 10) {
-            temperatures.removeAt(0);
+          DateTime now = DateTime.now();
+          if (lastRetry == null || (lastRetry!.difference(now)).abs().inSeconds > 5) {
+            initWebSocket(connectionType == ConnectionType.ap ? ConnectionType.wifi : ConnectionType.ap);
+            lastRetry = now;
+            setState(() {});
           }
-          if (temperatures.length > 10) {
-            temperatures.removeAt(0);
-          }
-        });
-      },
-      onError: (error) {
-        setState(() {
-          if (connectionType == ConnectionType.wifi) {
-            wifiConnectionStatus = ConnectionStatus.disconnected;
-          } else if (connectionType == ConnectionType.ap) {
-            apConnectionStatus = ConnectionStatus.disconnected;
-          }
-        });
-        ScaffoldMessenger.of(context).hideCurrentSnackBar();
-        ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-          SnackBar(
-              behavior: SnackBarBehavior.floating,
-              width: 400.0,
-              content: Text('Failed to connect to $currentHost | using ${connectionType == ConnectionType.wifi ? 'wifi' : 'ap'}'),
-              action: SnackBarAction(
-                label: 'reconnect',
-                onPressed: () {
-                  initWebSocket(connectionType);
-                  ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                },
-              )),
-        );
-        DateTime now = DateTime.now();
-        if (lastRetry == null || (lastRetry!.difference(now)).abs().inSeconds > 5) {
-          initWebSocket(
-            connectionType == ConnectionType.ap?ConnectionType.wifi:ConnectionType.ap
-          );
-          lastRetry=now;
-          setState(() {
-            
-          });
-        }
-      },
-      cancelOnError: true,
-    );
+        },
+        cancelOnError: true,
+      );
+    } catch (e) {
+      print("---------------");
+      print(e);
+      await Future.delayed(Duration(seconds: 2));
+      initWebSocket(connectionType);
+    }
   }
 
   void disconnect() {
@@ -270,6 +326,30 @@ class _HomeState extends State<Home> {
             },
           )),
     );
+  }
+
+  Future<void> updateDisplayValueKey(String value) async {
+    // send post to /api with readRate query
+    final response = await http.post(
+      Uri.parse('http://$currentHost/api?displayValueKey=$value'),
+    );
+    if (response.statusCode == 200) {
+      setState(() {
+        displayValueKey = value;
+      });
+    }
+  }
+
+  Future<void> updateTankHeight(num value) async {
+    // send post to /api with readRate query
+    final response = await http.post(
+      Uri.parse('http://$currentHost/api?tankHeight=$value'),
+    );
+    if (response.statusCode == 200) {
+      setState(() {
+        tankHeight = value;
+      });
+    }
   }
 
   Future<void> updateReadRate(num value) async {
@@ -300,7 +380,7 @@ class _HomeState extends State<Home> {
     }
   }
 
-  Future<void> updateWifi(String ssid, String password) async {
+  Future<void> updateWifi({required String ssid, required String password}) async {
     // send post to /api with wifi query
     try {
       final response = await http.post(
@@ -311,7 +391,7 @@ class _HomeState extends State<Home> {
     }
   }
 
-  Future<void> updateAP(String ssid, String password) async {
+  Future<void> updateAP({required String ssid, required String password}) async {
     // send post to /api with wifi query
     try {
       final response = await http.post(
@@ -365,7 +445,8 @@ class _HomeState extends State<Home> {
                           },
                         ),
                         backgroundColor: Colors.transparent,
-                        title: const Text('IOT'),
+                        centerTitle: false,
+                        title: const Text('Hello IOT'),
                         actions: [
                           IconButton(
                             icon: const Icon(Icons.power_settings_new_rounded),
@@ -402,103 +483,262 @@ class _HomeState extends State<Home> {
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Card(
-                        margin: const EdgeInsets.all(0),
-                        color: Theme.of(context).colorScheme.surface.withOpacity(0.5),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(
-                            color: Colors.grey.withOpacity(0.5),
-                            width: 1,
-                          ),
-                        ),
-                        clipBehavior: Clip.antiAlias,
-                        child: Stack(
+                      child: SizedBox(
+                        height: 180,
+                        child: Row(
                           children: [
-                            Positioned(
-                              left: 0,
-                              right: 0,
-                              bottom: 0,
-                              height: 74 ,
-                              child: CustomPaint(
-                                painter: _GriedentGraphPainter(
-                                  temperatures: humidities,
-                                  context: context,
+                            Expanded(
+                              child: Card(
+                                margin: const EdgeInsets.all(0),
+                                color: Theme.of(context).colorScheme.surface.withOpacity(0.5),
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: BorderSide(
+                                    color: Colors.grey.withOpacity(0.5),
+                                    width: 1,
+                                  ),
+                                ),
+                                clipBehavior: Clip.antiAlias,
+                                child: Stack(
+                                  children: [
+                                    Positioned.fill(
+                                      child:  Column(
+                                        mainAxisAlignment: MainAxisAlignment.end,
+                                        children: [
+                                          Container(
+                                            height: 1,
+                                            decoration: BoxDecoration(
+                                              color: Theme.of(context).colorScheme.primary,
+                                              gradient: LinearGradient(
+                                                colors: [
+
+                                                  Colors.blue.withOpacity(0.5),
+                                                  Colors.blue,
+                                                  Colors.blue,
+                                                  Colors.blue.withOpacity(0.5),
+                                                ],
+                                                begin: Alignment.centerLeft,
+                                                end: Alignment.centerRight,
+                                                // stops: const [0.1, 0.2, 0],
+                                              )
+                                            ),
+                                          ),
+                                          AnimatedContainer(
+                                            duration: const Duration(milliseconds: 300),
+                                            height: 180*math.max(0, (tankHeight<=0?0:((tankHeight-averageDistance)/tankHeight))),
+                                            decoration: BoxDecoration(
+                                              color: Theme.of(context).colorScheme.primary,
+                                              gradient: LinearGradient(
+                                                colors: [
+                                                  Colors.blueAccent.withOpacity(0.5),
+                                                  Colors.blue.withOpacity(0),
+                                                ],
+                                                begin: Alignment.topCenter,
+                                                end: Alignment.bottomCenter,
+                                                // stops: const [0.1, 0.2, 0],
+                                              )
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Positioned.fill(
+                                      child:  Column(
+                                        mainAxisAlignment: MainAxisAlignment.end,
+                                        children: [
+                                          Container(
+                                            height: 1,
+                                            decoration: BoxDecoration(
+                                              color: Theme.of(context).colorScheme.primary,
+                                              gradient: LinearGradient(
+                                                colors: [
+
+                                                  Colors.green.withOpacity(0.5),
+                                                  Colors.blue,
+                                                  Colors.blue,
+                                                  Colors.green.withOpacity(0.5),
+                                                ],
+                                                begin: Alignment.centerLeft,
+                                                end: Alignment.centerRight,
+                                                // stops: const [0.1, 0.2, 0],
+                                              )
+                                            ),
+                                          ),
+                                          AnimatedContainer(
+                                            duration: const Duration(milliseconds: 300),
+                                            height: 180*math.max(0, (tankHeight<=0?0:((tankHeight-distance)/tankHeight))),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const SizedBox(height: 24),
+                                        Text(
+                                         tankHeight > 0? "${(tankHeight-averageDistance)*100~/tankHeight}%" : "--%",
+                                          style: Theme.of(context).textTheme.headlineMedium!.copyWith(fontWeight: FontWeight.bold),
+                                        ),
+                                        const SizedBox(height: 12),
+                                        const Row(
+                                          children: [],
+                                        ),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            Column(
+                                              children: [
+                                                const Icon(Icons.leak_add_rounded),
+                                                Text('${distance.toInt()}cm'),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 30, child: VerticalDivider()),
+                                            Column(
+                                              children: [
+                                                const Icon(Icons.join_full_outlined),
+                                                Text('${tankHeight.toInt()}cm'),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 24),
+                                      ],
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
-                            // Positioned(
-                            //   left: 0,
-                            //   right: 0,
-                            //   bottom: 0,
-                            //   height: 20,
-                            //   child: CustomPaint(
-                            //     painter: _GriedentGraphPainter(
-                            //       temperatures:  temperatures,
-                            //       context: context,
-                            //       theme2: true
-                            //     ),
-                            //   ),
-                            // ),
-                            Column(
-                              children: [
-                                const SizedBox(height: 24),
-                                Text('Hello IoT',
-                                    style: Theme.of(context).textTheme.headlineMedium!.copyWith(
-                                          fontWeight: FontWeight.bold,
-                                        )),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
+                            SizedBox(width: 16),
+                            Expanded(
+                              flex: 2,
+                              child: Card(
+                                margin: const EdgeInsets.all(0),
+                                color: Theme.of(context).colorScheme.surface.withOpacity(0.5),
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                  side: BorderSide(
+                                    color: Colors.grey.withOpacity(0.5),
+                                    width: 1,
+                                  ),
+                                ),
+                                clipBehavior: Clip.antiAlias,
+                                child: Stack(
                                   children: [
-                                    // connection status
-                                    Container(
-                                      width: 30,
-                                      height: 20,
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(12),
-                                        color: currentConnectionStatus.color.withOpacity(0.2),
-                                      ),
-                                      child: Center(
-                                        child: Icon(
-                                          currentConnectionStatus == ConnectionStatus.connected ? connectionType.connectedIcon : connectionType.disconnectedIcon,
-                                          color: currentConnectionStatus.color,
-                                          size: 12,
+                                    Positioned(
+                                      left: 0,
+                                      right: 0,
+                                      bottom: 0,
+                                      height: 74,
+                                      child: CustomPaint(
+                                        painter: _GriedentGraphPainter(
+                                          temperatures: distances,
+                                          context: context,
                                         ),
                                       ),
                                     ),
-                                    const SizedBox(width: 8),
-                                    // if (lastRetry != null)
-                                    //   Text("retry in "+(lastRetry!.difference(DateTime.now()).abs().inSeconds.toString())+"...")
-                                    //   else
-                                    Text(timeago.format(appStartAt)),
+                                    // Positioned(
+                                    //   left: 0,
+                                    //   right: 0,
+                                    //   bottom: 0,
+                                    //   height: 20,
+                                    //   child: CustomPaint(
+                                    //     painter: _GriedentGraphPainter(
+                                    //       temperatures:  temperatures,
+                                    //       context: context,
+                                    //       theme2: true
+                                    //     ),
+                                    //   ),
+                                    // ),
+                                    MenuAnchor(
+                                      menuChildren: [
+                                        for (var key in displayValueKeys)
+                                          ListTile(
+                                            title: Text(key),
+                                            onTap: () {
+                                              updateDisplayValueKey(key);
+                                            },
+                                          ),
+                                      ],
+                                      builder: (context, controller, _) {
+                                        return GestureDetector(
+                                          onTap: () {
+                                            if (controller.isOpen) {
+                                              controller.close();
+                                            } else {
+                                              controller.open();
+                                            }
+                                          },
+                                          child: Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                            children: [
+                                              const SizedBox(height: 24),
+                                              Text(
+                                                displayValue,
+                                                style: Theme.of(context).textTheme.headlineMedium!.copyWith(
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Row(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                children: [
+                                                  // connection status
+                                                  Container(
+                                                    width: 30,
+                                                    height: 20,
+                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                    decoration: BoxDecoration(
+                                                      borderRadius: BorderRadius.circular(12),
+                                                      color: currentConnectionStatus.color.withOpacity(0.2),
+                                                    ),
+                                                    child: Center(
+                                                      child: Icon(
+                                                        currentConnectionStatus == ConnectionStatus.connected ? connectionType.connectedIcon : connectionType.disconnectedIcon,
+                                                        color: currentConnectionStatus.color,
+                                                        size: 12,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  // if (lastRetry != null)
+                                                  //   Text("retry in "+(lastRetry!.difference(DateTime.now()).abs().inSeconds.toString())+"...")
+                                                  //   else
+                                                  Text(timeago.format(appStartAt)),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 12),
+                                              const Row(
+                                                children: [],
+                                              ),
+                                              Row(
+                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                children: [
+                                                  Column(
+                                                    children: [
+                                                      const Icon(Icons.device_thermostat_rounded),
+                                                      Text('$temperature °C'),
+                                                    ],
+                                                  ),
+                                                  const SizedBox(height: 30, child: VerticalDivider()),
+                                                  Column(
+                                                    children: [
+                                                      const Icon(Icons.water_rounded),
+                                                      Text('$humidity %'),
+                                                    ],
+                                                  ),
+                                                ],
+                                              ),
+                                              const SizedBox(height: 24),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    ),
                                   ],
                                 ),
-                                const SizedBox(height: 12),
-                                const Row(
-                                  children: [],
-                                ),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Column(
-                                      children: [
-                                        const Icon(Icons.device_thermostat_rounded),
-                                        Text('$temperature °C'),
-                                      ],
-                                    ),
-                                    const SizedBox(height: 30, child: VerticalDivider()),
-                                    Column(
-                                      children: [
-                                        const Icon(Icons.water_rounded),
-                                        Text('$humidity %'),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 24),
-                              ],
+                              ),
                             ),
                           ],
                         ),
@@ -525,6 +765,13 @@ class _HomeState extends State<Home> {
                         child: Column(
                           children: [
                             ListTile(
+                              onLongPress: () async {
+                                var ip = await showUpdateIpDailog(context, ip: wifi_ip);
+                                if (ip != null) {
+                                  wifi_ip = ip;
+                                  initWebSocket(ConnectionType.wifi);
+                                }
+                              },
                               onTap: () {
                                 if (currentConnectionStatus == ConnectionStatus.connected) {
                                   disconnect();
@@ -543,17 +790,24 @@ class _HomeState extends State<Home> {
                                   const Text('Wifi IP'),
                                   const SizedBox(width: 8),
                                   buildConnect(wifiConnectionStatus),
-                                  const SizedBox(width: 8),
-                                  Text(wifiSSID + " | " + wifiStatus, style: Theme.of(context).textTheme.bodySmall!.copyWith(color: Theme.of(context).colorScheme.onBackground.withOpacity(0.5), fontSize: 10)),
                                 ],
                               ),
-                              subtitle: Text(wifi_ip),
+                              subtitle: Row(
+                                children: [
+                                  Text(wifi_ip),
+                                  const SizedBox(width: 8),
+                                  Text("$wifiSSID | $wifiStatus", style: Theme.of(context).textTheme.bodySmall!.copyWith(color: Theme.of(context).colorScheme.onBackground.withOpacity(0.5), fontSize: 10)),
+                                ],
+                              ),
                               trailing: IconButton(
                                 icon: const Icon(Icons.edit),
                                 onPressed: () async {
-                                  var data = await showWifiUpdateDailog(context);
+                                  var data = await showWifiUpdateDailog(context, ssid: wifiSSID, password: "iotiotiot");
                                   if (data != null) {
-                                    updateWifi(data.ssid, data.password);
+                                    updateWifi(
+                                      ssid: data.ssid,
+                                      password: data.password,
+                                    );
                                   }
                                 },
                               ),
@@ -565,6 +819,13 @@ class _HomeState extends State<Home> {
                               ),
                             ),
                             ListTile(
+                              onLongPress: () async {
+                                var ip = await showUpdateIpDailog(context, ip: ap_ip);
+                                if (ip != null) {
+                                  ap_ip = ip;
+                                  initWebSocket(ConnectionType.ap);
+                                }
+                              },
                               onTap: () {
                                 if (currentConnectionStatus == ConnectionStatus.connected) {
                                   disconnect();
@@ -591,9 +852,12 @@ class _HomeState extends State<Home> {
                               trailing: IconButton(
                                 icon: const Icon(Icons.edit),
                                 onPressed: () async {
-                                  var data = await showWifiUpdateDailog(context);
+                                  var data = await showWifiUpdateDailog(context, ssid: "IOT_AP", password: "iotiotiot");
                                   if (data != null) {
-                                    updateAP(data.ssid, data.password);
+                                    updateAP(
+                                      ssid: data.ssid,
+                                      password: data.password,
+                                    );
                                   }
                                 },
                               ),
@@ -664,6 +928,74 @@ class _HomeState extends State<Home> {
                             ListTile(
                               contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                               minVerticalPadding: 0,
+                              leading: const Icon(Icons.water_drop_outlined),
+                              title: const Text('Distance'),
+                              subtitle: Text('$distance cm / max ${tankHeight}%'),
+                              // dialog to update it
+                              trailing: IconButton(
+                                icon: const Icon(Icons.edit),
+                                onPressed: () async {
+                                  var data = await showDialog(
+                                      context: context,
+                                      builder: (context) {
+                                        var value = TextEditingController(text: tankHeight.toString());
+                                        return AlertDialog(
+                                          title: const Text('Update Distance'),
+                                          content: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              TextFormField(
+                                                controller: value,
+                                                decoration: const InputDecoration(
+                                                  isDense: true,
+                                                  labelText: 'Tank Height',
+                                                  border: OutlineInputBorder(),
+                                                  prefixIcon: Icon(Icons.water_rounded),
+                                                ),
+                                                keyboardType: TextInputType.number,
+                                                validator: (value) {
+                                                  if (value == null || value.isEmpty) {
+                                                    return 'Please enter tank height';
+                                                  }
+                                                  return null;
+                                                },
+                                              ),
+                                            ],
+                                          ),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () {
+                                                Navigator.pop(context);
+                                              },
+                                              child: const Text('Cancel'),
+                                            ),
+                                            TextButton.icon(
+                                              icon: const Icon(Icons.done_all),
+                                              onPressed: () {
+                                                if (num.parse(value.text) > 0) {
+                                                  Navigator.pop(context, num.parse(value.text));
+                                                }
+                                              },
+                                              label: const Text('Update'),
+                                            ),
+                                          ],
+                                        );
+                                      });
+                                  if (data != null) {
+                                    updateTankHeight(data);
+                                  }
+                                },
+                              ),
+                            ),
+                            const Padding(
+                              padding: EdgeInsets.only(left: kMinInteractiveDimension),
+                              child: Divider(
+                                height: 1,
+                              ),
+                            ),
+                            ListTile(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                              minVerticalPadding: 0,
                               leading: const Icon(Icons.thermostat_rounded),
                               title: const Text('Temperature'),
                               subtitle: Text('$temperature °C / $fahrenheit °F'),
@@ -693,6 +1025,25 @@ class _HomeState extends State<Home> {
                               leading: const Icon(Icons.thermostat_rounded),
                               title: const Text('Heat Index'),
                               subtitle: Text('$heatindexC °C / $heatindexF °F'),
+                            ),
+                            const Padding(
+                              padding: EdgeInsets.only(left: kMinInteractiveDimension),
+                              child: Divider(
+                                height: 1,
+                              ),
+                            ),
+                            ListTile(
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                              minVerticalPadding: 0,
+                              leading: const Icon(Icons.file_present_outlined),
+                              title: const Text('Read Docs'),
+                              subtitle: Text('all info about the project'),
+                              onTap: () {
+                                Navigator.of(context).push(    MaterialPageRoute<void>(
+      builder: (BuildContext context) => const AboutPage(),
+    ),
+);
+                              },
                             ),
                           ],
                         ),
@@ -771,11 +1122,10 @@ class _GriedentGraphPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.fill;
     final linePaint = Paint()
-      ..strokeWidth =theme2? 2: 1
-      ..color =theme2? Theme.of(context).colorScheme.secondary: Theme.of(context).colorScheme.primary
+      ..strokeWidth = theme2 ? 2 : 1
+      ..color = theme2 ? Theme.of(context).colorScheme.secondary : Theme.of(context).colorScheme.primary
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;
-    
 
     final rectPath = Path();
     final linePath = Path();
@@ -789,7 +1139,10 @@ class _GriedentGraphPainter extends CustomPainter {
       end: Alignment.bottomCenter,
     );
 
-    final points = [...temperatures.reversed.map((e) => e.toDouble()).toList(),0];
+    final points = [
+      ...temperatures.reversed.map((e) => e.toDouble()).toList(),
+      // 0
+    ];
     final max = points.reduce(math.max);
     final min = points.reduce(math.min);
     final diff = max - min;
@@ -803,17 +1156,16 @@ class _GriedentGraphPainter extends CustomPainter {
         rectPath.moveTo(x, y);
         linePath.moveTo(x, y);
       } else {
-        if (!theme2){
-
-        final prevPoint = points[i - 1];
-        final prevX = step * (i - 1);
-        final prevY = size.height - ((prevPoint - min) / diff) * size.height;
-        final x1 = prevX + (x - prevX) / 2;
-        final y1 = prevY;
-        final x2 = prevX + (x - prevX) / 2;
-        final y2 = y;
-        rectPath.cubicTo(x1, y1, x2, y2, x, y);
-        linePath.cubicTo(x1, y1, x2, y2, x, y);
+        if (!theme2) {
+          final prevPoint = points[i - 1];
+          final prevX = step * (i - 1);
+          final prevY = size.height - ((prevPoint - min) / diff) * size.height;
+          final x1 = prevX + (x - prevX) / 2;
+          final y1 = prevY;
+          final x2 = prevX + (x - prevX) / 2;
+          final y2 = y;
+          rectPath.cubicTo(x1, y1, x2, y2, x, y);
+          linePath.cubicTo(x1, y1, x2, y2, x, y);
         } else {
           linePath.lineTo(x, y);
         }
@@ -840,14 +1192,18 @@ class _GriedentGraphPainter extends CustomPainter {
 Future<
     ({
       String password,
-      String ssid
-    })?> showWifiUpdateDailog(BuildContext context) async {
-  final ssidController = TextEditingController(text: "DJAWEB_IOT");
-  final passwordController = TextEditingController(text: "iotiotiot");
+      String ssid,
+    })?> showWifiUpdateDailog(
+  BuildContext context, {
+  String? password,
+  String? ssid,
+}) async {
+  final ssidController = TextEditingController(text: ssid);
+  final passwordController = TextEditingController(text: password);
   return await showDialog<
       ({
         String password,
-        String ssid
+        String ssid,
       })>(
     context: context,
     builder: (context) {
@@ -1045,4 +1401,81 @@ Future<void> showPreferencesDailog(BuildContext context) async {
       );
     },
   );
+}
+
+Future<String> showUpdateIpDailog(BuildContext context, {String? ip}) async {
+  final ipController = TextEditingController(text: ip);
+  return await showDialog(
+    context: context,
+    builder: (context) {
+      return AlertDialog(
+        title: const Text('Update IP'),
+        content: TextFormField(
+          controller: ipController,
+          decoration: const InputDecoration(
+            isDense: true,
+            labelText: 'IP',
+            border: OutlineInputBorder(),
+            prefixIcon: Icon(Icons.location_searching_sharp),
+          ),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please enter IP';
+            }
+            return null;
+          },
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+            child: const Text('Cancel'),
+          ),
+          TextButton.icon(
+            icon: const Icon(Icons.done_all),
+            onPressed: () {
+              if (ipController.text.isNotEmpty) {
+                Navigator.pop(context, ipController.text);
+              }
+            },
+            label: const Text('Update'),
+          ),
+        ],
+      );
+    },
+  );
+}
+
+
+
+
+
+
+
+class AboutPage extends StatelessWidget {
+  const AboutPage({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Documents"),
+      ),
+      body: ListView(
+        children: [
+          for (var i = 0; i<=13;i++)
+            Padding(
+              padding: const EdgeInsets.only(bottom:  8.0),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Image.asset("assets/doc/Artboard $i-80.jpg"),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
 }
