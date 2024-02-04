@@ -17,7 +17,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 DateTime appStartAt = DateTime.now();
 
 ValueNotifier<ThemeMode> themeMode = ValueNotifier(ThemeMode.system);
-ValueNotifier<Color> themeColor = ValueNotifier(Colors.amber);
+ValueNotifier<Color> themeColor = ValueNotifier(Colors.teal);
 
 void main() {
   runApp(const App());
