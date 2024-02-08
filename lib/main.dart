@@ -1,9 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 // google fonts
 import 'package:google_fonts/google_fonts.dart';
 import 'package:motif/motif.dart';
@@ -13,6 +11,36 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 // web socket
 import 'package:web_socket_channel/web_socket_channel.dart';
+
+var songs = [
+  "The Simpsons:d=4,o=5,b=160:c.6,e6,f#6,8a6,g.6,e6,c6,8a,8f#,8f#,8f#,2g,8p,8p,8f#,8f#,8f#,8g,a#.,8c6,8c6,8c6,c6",
+  "Indiana:d=4,o=5,b=250:e,8p,8f,8g,8p,1c6,8p.,d,8p,8e,1f,p.,g,8p,8a,8b,8p,1f6,p,a,8p,8b,2c6,2d6,2e6,e,8p,8f,8g,8p,1c6,p,d6,8p,8e6,1f.6,g,8p,8g,e.6,8p,d6,8p,8g,e.6,8p,d6,8p,8g,f.6,8p,e6,8p,8d6,2c6",
+  "TakeOnMe:d=4,o=4,b=160:8f#5,8f#5,8f#5,8d5,8p,8b,8p,8e5,8p,8e5,8p,8e5,8g#5,8g#5,8a5,8b5,8a5,8a5,8a5,8e5,8p,8d5,8p,8f#5,8p,8f#5,8p,8f#5,8e5,8e5,8f#5,8e5,8f#5,8f#5,8f#5,8d5,8p,8b,8p,8e5,8p,8e5,8p,8e5,8g#5,8g#5,8a5,8b5,8a5,8a5,8a5,8e5,8p,8d5,8p,8f#5,8p,8f#5,8p,8f#5,8e5,8e5",
+  "Entertainer:d=4,o=5,b=140:8d,8d#,8e,c6,8e,c6,8e,2c.6,8c6,8d6,8d#6,8e6,8c6,8d6,e6,8b,d6,2c6,p,8d,8d#,8e,c6,8e,c6,8e,2c.6,8p,8a,8g,8f#,8a,8c6,e6,8d6,8c6,8a,2d6",
+  "Muppets:d=4,o=5,b=250:c6,c6,a,b,8a,b,g,p,c6,c6,a,8b,8a,8p,g.,p,e,e,g,f,8e,f,8c6,8c,8d,e,8e,8e,8p,8e,g,2p,c6,c6,a,b,8a,b,g,p,c6,c6,a,8b,a,g.,p,e,e,g,f,8e,f,8c6,8c,8d,e,8e,d,8d,c",
+  "Xfiles:d=4,o=5,b=125:e,b,a,b,d6,2b.,1p,e,b,a,b,e6,2b.,1p,g6,f#6,e6,d6,e6,2b.,1p,g6,f#6,e6,d6,f#6,2b.,1p,e,b,a,b,d6,2b.,1p,e,b,a,b,e6,2b.,1p,e6,2b.",
+  "Looney:d=4,o=5,b=140:32p,c6,8f6,8e6,8d6,8c6,a.,8c6,8f6,8e6,8d6,8d#6,e.6,8e6,8e6,8c6,8d6,8c6,8e6,8c6,8d6,8a,8c6,8g,8a#,8a,8f",
+  "20thCenFox:d=16,o=5,b=140:b,8p,b,b,2b,p,c6,32p,b,32p,c6,32p,b,32p,c6,32p,b,8p,b,b,b,32p,b,32p,b,32p,b,32p,b,32p,b,32p,b,32p,g#,32p,a,32p,b,8p,b,b,2b,4p,8e,8g#,8b,1c#6,8f#,8a,8c#6,1e6,8a,8c#6,8e6,1e6,8b,8g#,8a,2b",
+  "Bond:d=4,o=5,b=80:32p,16c#6,32d#6,32d#6,16d#6,8d#6,16c#6,16c#6,16c#6,16c#6,32e6,32e6,16e6,8e6,16d#6,16d#6,16d#6,16c#6,32d#6,32d#6,16d#6,8d#6,16c#6,16c#6,16c#6,16c#6,32e6,32e6,16e6,8e6,16d#6,16d6,16c#6,16c#7,c.7,16g#6,16f#6,g#.6",
+  "MASH:d=8,o=5,b=140:4a,4g,f#,g,p,f#,p,g,p,f#,p,2e.,p,f#,e,4f#,e,f#,p,e,p,4d.,p,f#,4e,d,e,p,d,p,e,p,d,p,2c#.,p,d,c#,4d,c#,d,p,e,p,4f#,p,a,p,4b,a,b,p,a,p,b,p,2a.,4p,a,b,a,4b,a,b,p,2a.,a,4f#,a,b,p,d6,p,4e.6,d6,b,p,a,p,2b",
+  "StarWars:d=4,o=5,b=45:32p,32f#,32f#,32f#,8b.,8f#.6,32e6,32d#6,32c#6,8b.6,16f#.6,32e6,32d#6,32c#6,8b.6,16f#.6,32e6,32d#6,32e6,8c#.6,32f#,32f#,32f#,8b.,8f#.6,32e6,32d#6,32c#6,8b.6,16f#.6,32e6,32d#6,32c#6,8b.6,16f#.6,32e6,32d#6,32e6,8c#6",
+  "GoodBad:d=4,o=5,b=56:32p,32a#,32d#6,32a#,32d#6,8a#.,16f#.,16g#.,d#,32a#,32d#6,32a#,32d#6,8a#.,16f#.,16g#.,c#6,32a#,32d#6,32a#,32d#6,8a#.,16f#.,32f.,32d#.,c#,32a#,32d#6,32a#,32d#6,8a#.,16g#.,d#",
+  "TopGun:d=4,o=4,b=31:32p,16c#,16g#,16g#,32f#,32f,32f#,32f,16d#,16d#,32c#,32d#,16f,32d#,32f,16f#,32f,32c#,16f,d#,16c#,16g#,16g#,32f#,32f,32f#,32f,16d#,16d#,32c#,32d#,16f,32d#,32f,16f#,32f,32c#,g#",
+  "A-Team:d=8,o=5,b=125:4d#6,a#,2d#6,16p,g#,4a#,4d#.,p,16g,16a#,d#6,a#,f6,2d#6,16p,c#.6,16c6,16a#,g#.,2a#",
+  "Flinstones:d=4,o=5,b=40:32p,16f6,16a#,16a#6,32g6,16f6,16a#.,16f6,32d#6,32d6,32d6,32d#6,32f6,16a#,16c6,d6,16f6,16a#.,16a#6,32g6,16f6,16a#.,32f6,32f6,32d#6,32d6,32d6,32d#6,32f6,16a#,16c6,a#,16a6,16d.6,16a#6,32a6,32a6,32g6,32f#6,32a6,8g6,16g6,16c.6,32a6,32a6,32g6,32g6,32f6,32e6,32g6,8f6,16f6,16a#.,16a#6,32g6,16f6,16a#.,16f6,32d#6,32d6,32d6,32d#6,32f6,16a#,16c.6,32d6,32d#6,32f6,16a#,16c.6,32d6,32d#6,32f6,16a#6,16c7,8a#.6",
+  "Jeopardy:d=4,o=6,b=125:c,f,c,f5,c,f,2c,c,f,c,f,a.,8g,8f,8e,8d,8c#,c,f,c,f5,c,f,2c,f.,8d,c,a#5,a5,g5,f5,p,d#,g#,d#,g#5,d#,g#,2d#,d#,g#,d#,g#,c.7,8a#,8g#,8g,8f,8e,d#,g#,d#,g#5,d#,g#,2d#,g#.,8f,d#,c#,c,p,a#5,p,g#.5,d#,g#",
+  "Gadget:d=16,o=5,b=50:32d#,32f,32f#,32g#,a#,f#,a,f,g#,f#,32d#,32f,32f#,32g#,a#,d#6,4d6,32d#,32f,32f#,32g#,a#,f#,a,f,g#,f#,8d#",
+  "Smurfs:d=32,o=5,b=200:4c#6,16p,4f#6,p,16c#6,p,8d#6,p,8b,p,4g#,16p,4c#6,p,16a#,p,8f#,p,8a#,p,4g#,4p,g#,p,a#,p,b,p,c6,p,4c#6,16p,4f#6,p,16c#6,p,8d#6,p,8b,p,4g#,16p,4c#6,p,16a#,p,8b,p,8f,p,4f#",
+  "MahnaMahna:d=16,o=6,b=125:c#,c.,b5,8a#.5,8f.,4g#,a#,g.,4d#,8p,c#,c.,b5,8a#.5,8f.,g#.,8a#.,4g,8p,c#,c.,b5,8a#.5,8f.,4g#,f,g.,8d#.,f,g.,8d#.,f,8g,8d#.,f,8g,d#,8c,a#5,8d#.,8d#.,4d#,8d#.",
+  "LeisureSuit:d=16,o=6,b=56:f.5,f#.5,g.5,g#5,32a#5,f5,g#.5,a#.5,32f5,g#5,32a#5,g#5,8c#.,a#5,32c#,a5,a#.5,c#.,32a5,a#5,32c#,d#,8e,c#.,f.,f.,f.,f.,f,32e,d#,8d,a#.5,e,32f,e,32f,c#,d#.,c#",
+  "MissionImp:d=16,o=6,b=95:32d,32d#,32d,32d#,32d,32d#,32d,32d#,32d,32d,32d#,32e,32f,32f#,32g,g,8p,g,8p,a#,p,c7,p,g,8p,g,8p,f,p,f#,p,g,8p,g,8p,a#,p,c7,p,g,8p,g,8p,f,p,f#,p,a#,g,2d,32p,a#,g,2c#,32p,a#,g,2c,a#5,8c,2p,32p,a#5,g5,2f#,32p,a#5,g5,2f,32p,a#5,g5,2e,d#,8d",
+  "smbdeath:d=4,o=5,b=90:32c6,32c6,32c6,8p,16b,16f6,16p,16f6,16f.6,16e.6,16d6,16c6,16p,16e,16p,16c",
+  "Monty P:d=4,o=5,b=200:f6,8e6,d6,8c#6,c6,8b,a#,8a,8g,8a,8a#,a,8g,2c6,8p,8c6,8a,8p,8a,8a,8g#,8a,8f6,8p,8c6,8c6,8p,8a,8a#,8p,8a#,8a#,8p,8c6,2d6,8p,8a#,8g,8p,8g,8g,8f#,8g,8e6,8p,8d6,8d6,8p,8a#,8a,8p,8a,8a,8p,8a#,2c6,8p,8c6",
+  "Yaketysax:d=4,o=5,b=125:8d.,16e,8g,8g,16e,16d,16a4,16b4,16d,16b4,8e,16d,16b4,16a4,16b4,8a4,16a4,16a#4,16b4,16d,16e,16d,g,p,16d,16e,16d,8g,8g,16e,16d,16a4,16b4,16d,16b4,8e,16d,16b4,16a4,16b4,8d,16d,16d,16f#,16a,8f,d,p,16d,16e,16d,8g,16g,16g,8g,16g,16g,8g,8g,16e,8e.,8c,8c,8c,8c,16e,16g,16a,16g,16a#,8g,16a,16b,16a#,16b,16a,16b,8d6,16a,16b,16d6,8b,8g,8d,16e6,16b,16b,16d,8a,8g,g;",
+  "YMCA:d=4,o=5,b=160:8c#6,8a#,2p,8a#,8g#,8f#,8g#,8a#,c#6,8a#,c#6,8d#6,8a#,2p,8a#,8g#,8f#,8g#,8a#,c#6,8a#,c#6,8d#6,8b,2p,8b,8a#,8g#,8a#,8b,d#6,8f#6,d#6,f.6,d#.6,c#.6,b.,a#,g#",
+  "BarbieGirl:d=4,o=5,b=125:8g#,8e,8g#,8c#6,a,p,8f#,8d#,8f#,8b,g#,8f#,8e,p,8e,8c#,f#,c#,p,8f#,8e,g#,f#",
+  "TakeOnMe:d=4,o=4,b=160:8f#5,8f#5,8f#5,8d5,8p,8b,8p,8e5,8p,8e5,8p,8e5,8g#5,8g#5,8a5,8b5,8a5,8a5,8a5,8e5,8p,8d5,8p,8f#5,8p,8f#5,8p,8f#5,8e5,8e5,8f#5,8e5,8f#5,8f#5,8f#5,8d5,8p,8b,8p,8e5,8p,8e5,8p,8e5,8g#5,8g#5,8a5,8b5,8a5,8a5,8a5,8e5,8p,8d5,8p,8f#5,8p,8f#5,8p,8f#5,8e5,8e5",
+];
 
 DateTime appStartAt = DateTime.now();
 
@@ -164,9 +192,11 @@ class _HomeState extends State<Home> {
   String wifiStatus = "active";
   String wifiSSID = "DJAWEB_IOT";
   num readRate = 100;
+  num notifyRate = 100;
   num flaged = 0;
   num temperature = 0;
   num distance = 0;
+  num benchmark = 0;
   num averageDistance = 0;
   num realDistance = 0;
   num tankHeight = 0;
@@ -185,6 +215,11 @@ class _HomeState extends State<Home> {
   void initState() {
     super.initState();
     initWebSocket(connectionType);
+  }
+
+  num parseUnsignedInt(dynamic value, num defaultValue) {
+    var parsed = num.tryParse(value.toString()) ?? 0;
+    return parsed > 0 ? parsed.toInt() : defaultValue;
   }
 
   void initWebSocket(ConnectionType connectionType) async {
@@ -244,16 +279,28 @@ class _HomeState extends State<Home> {
             wifiStatus = data['wifi_status'] ?? wifiStatus;
             wifiSSID = data['wifi_ssid'] ?? wifiSSID;
             readRate = data['readRate'] ?? readRate;
+            notifyRate = data['notifyRate'] ?? notifyRate;
             flaged = data['flaged'] ?? flaged;
-            distance = num.tryParse((data['distance'] ?? 0).toStringAsFixed(2)) ?? distance;
-            tankHeight = num.tryParse((data['tankHeight'] ?? 0).toStringAsFixed(2)) ?? tankHeight;
-            realDistance = num.tryParse((data['realDistance'] ?? 0).toStringAsFixed(2)) ?? realDistance;
-            averageDistance = num.tryParse((data['averageDistance'] ?? 0).toStringAsFixed(2)) ?? averageDistance;
-            temperature = num.tryParse((data['temperature'] ?? 0).toStringAsFixed(2)) ?? temperature;
-            fahrenheit = num.tryParse((data['fahrenheit'] ?? 0).toStringAsFixed(2)) ?? fahrenheit;
-            humidity = num.tryParse((data['humidity'] ?? 0).toStringAsFixed(2)) ?? humidity;
-            heatindexC = num.tryParse((data['heatindexC'] ?? 0).toStringAsFixed(2)) ?? heatindexC;
-            heatindexF = num.tryParse((data['heatindexF'] ?? 0).toStringAsFixed(2)) ?? heatindexF;
+            benchmark = parseUnsignedInt(data['benchmark'], benchmark);
+            //  num.tryParse((data['benchmark'] ?? 0).toStringAsFixed(2)) ?? benchmark;
+            // distance = num.tryParse((data['distance'] ?? 0).toStringAsFixed(2)) ?? distance;
+            distance = parseUnsignedInt(data['distance'], distance);
+            // tankHeight = num.tryParse((data['tankHeight'] ?? 0).toStringAsFixed(2)) ?? tankHeight;
+            tankHeight = parseUnsignedInt(data['tankHeight'], tankHeight);
+            // realDistance = num.tryParse((data['realDistance'] ?? 0).toStringAsFixed(2)) ?? realDistance;
+            realDistance = parseUnsignedInt(data['realDistance'], realDistance);
+            // averageDistance = num.tryParse((data['averageDistance'] ?? 0).toStringAsFixed(2)) ?? averageDistance;
+            averageDistance = parseUnsignedInt(data['averageDistance'], averageDistance);
+            // temperature = num.tryParse((data['temperature'] ?? 0).toStringAsFixed(2)) ?? temperature;
+            temperature = parseUnsignedInt(data['temperature'], temperature);
+            // fahrenheit = num.tryParse((data['fahrenheit'] ?? 0).toStringAsFixed(2)) ?? fahrenheit;
+            fahrenheit = parseUnsignedInt(data['fahrenheit'], fahrenheit);
+            // humidity = num.tryParse((data['humidity'] ?? 0).toStringAsFixed(2)) ?? humidity;
+            fahrenheit = parseUnsignedInt(data['fahrenheit'], fahrenheit);
+            // heatindexC = num.tryParse((data['heatindexC'] ?? 0).toStringAsFixed(2)) ?? heatindexC;
+            heatindexC = parseUnsignedInt(data['heatindexC'], heatindexC);
+            // heatindexF = num.tryParse((data['heatindexF'] ?? 0).toStringAsFixed(2)) ?? heatindexF;
+            heatindexF = parseUnsignedInt(data['heatindexF'], heatindexF);
             temperatures.add(temperature);
             humidities.add(humidity);
             distances.add(distance);
@@ -329,7 +376,6 @@ class _HomeState extends State<Home> {
   }
 
   Future<void> updateDisplayValueKey(String value) async {
-    // send post to /api with readRate query
     final response = await http.post(
       Uri.parse('http://$currentHost/api?displayValueKey=$value'),
     );
@@ -341,7 +387,6 @@ class _HomeState extends State<Home> {
   }
 
   Future<void> updateTankHeight(num value) async {
-    // send post to /api with readRate query
     final response = await http.post(
       Uri.parse('http://$currentHost/api?tankHeight=$value'),
     );
@@ -353,7 +398,6 @@ class _HomeState extends State<Home> {
   }
 
   Future<void> updateReadRate(num value) async {
-    // send post to /api with readRate query
     final response = await http.post(
       Uri.parse('http://$currentHost/api?readRate=$value'),
     );
@@ -364,8 +408,19 @@ class _HomeState extends State<Home> {
     }
   }
 
+  // notifyRate
+  Future<void> updateNotifyRate(num value) async {
+    final response = await http.post(
+      Uri.parse('http://$currentHost/api?notifyRate=$value'),
+    );
+    if (response.statusCode == 200) {
+      setState(() {
+        notifyRate = value;
+      });
+    }
+  }
+
   Future<void> updateFlaged(num value) async {
-    // send post to /api with flaged query
     try {
       final response = await http.post(
         Uri.parse('http://$currentHost/api?flaged=$value'),
@@ -381,7 +436,6 @@ class _HomeState extends State<Home> {
   }
 
   Future<void> updateWifi({required String ssid, required String password}) async {
-    // send post to /api with wifi query
     try {
       final response = await http.post(
         Uri.parse('http://$currentHost/api?wifi_ssid=$ssid&wifi_password=$password'),
@@ -392,7 +446,6 @@ class _HomeState extends State<Home> {
   }
 
   Future<void> updateAP({required String ssid, required String password}) async {
-    // send post to /api with wifi query
     try {
       final response = await http.post(
         Uri.parse('http://$currentHost/api?ap_ssid=$ssid&ap_password=$password'),
@@ -403,7 +456,6 @@ class _HomeState extends State<Home> {
   }
 
   Future<void> restart() async {
-    // send post to /api with wifi query
     try {
       final response = await http.post(
         Uri.parse('http://$currentHost/api?restart=1'),
@@ -503,71 +555,66 @@ class _HomeState extends State<Home> {
                                 child: Stack(
                                   children: [
                                     Positioned.fill(
-                                      child:  Column(
+                                      child: Column(
                                         mainAxisAlignment: MainAxisAlignment.end,
                                         children: [
                                           Container(
                                             height: 1,
                                             decoration: BoxDecoration(
-                                              color: Theme.of(context).colorScheme.primary,
-                                              gradient: LinearGradient(
-                                                colors: [
-
-                                                  Colors.blue.withOpacity(0.5),
-                                                  Colors.blue,
-                                                  Colors.blue,
-                                                  Colors.blue.withOpacity(0.5),
-                                                ],
-                                                begin: Alignment.centerLeft,
-                                                end: Alignment.centerRight,
-                                                // stops: const [0.1, 0.2, 0],
-                                              )
-                                            ),
+                                                color: Theme.of(context).colorScheme.primary,
+                                                gradient: LinearGradient(
+                                                  colors: [
+                                                    Colors.blue.withOpacity(0.5),
+                                                    Colors.blue,
+                                                    Colors.blue,
+                                                    Colors.blue.withOpacity(0.5),
+                                                  ],
+                                                  begin: Alignment.centerLeft,
+                                                  end: Alignment.centerRight,
+                                                  // stops: const [0.1, 0.2, 0],
+                                                )),
                                           ),
                                           AnimatedContainer(
                                             duration: const Duration(milliseconds: 300),
-                                            height: 180*math.max(0, (tankHeight<=0?0:((tankHeight-averageDistance)/tankHeight))),
+                                            height: 180 * math.max(0, (tankHeight <= 0 ? 0 : ((tankHeight - averageDistance) / tankHeight))),
                                             decoration: BoxDecoration(
-                                              color: Theme.of(context).colorScheme.primary,
-                                              gradient: LinearGradient(
-                                                colors: [
-                                                  Colors.blueAccent.withOpacity(0.5),
-                                                  Colors.blue.withOpacity(0),
-                                                ],
-                                                begin: Alignment.topCenter,
-                                                end: Alignment.bottomCenter,
-                                                // stops: const [0.1, 0.2, 0],
-                                              )
-                                            ),
+                                                color: Theme.of(context).colorScheme.primary,
+                                                gradient: LinearGradient(
+                                                  colors: [
+                                                    Colors.blueAccent.withOpacity(0.5),
+                                                    Colors.blue.withOpacity(0),
+                                                  ],
+                                                  begin: Alignment.topCenter,
+                                                  end: Alignment.bottomCenter,
+                                                  // stops: const [0.1, 0.2, 0],
+                                                )),
                                           ),
                                         ],
                                       ),
                                     ),
                                     Positioned.fill(
-                                      child:  Column(
+                                      child: Column(
                                         mainAxisAlignment: MainAxisAlignment.end,
                                         children: [
                                           Container(
                                             height: 1,
                                             decoration: BoxDecoration(
-                                              color: Theme.of(context).colorScheme.primary,
-                                              gradient: LinearGradient(
-                                                colors: [
-
-                                                  Colors.green.withOpacity(0.5),
-                                                  Colors.blue,
-                                                  Colors.blue,
-                                                  Colors.green.withOpacity(0.5),
-                                                ],
-                                                begin: Alignment.centerLeft,
-                                                end: Alignment.centerRight,
-                                                // stops: const [0.1, 0.2, 0],
-                                              )
-                                            ),
+                                                color: Theme.of(context).colorScheme.primary,
+                                                gradient: LinearGradient(
+                                                  colors: [
+                                                    Colors.green.withOpacity(0.5),
+                                                    Colors.blue,
+                                                    Colors.blue,
+                                                    Colors.green.withOpacity(0.5),
+                                                  ],
+                                                  begin: Alignment.centerLeft,
+                                                  end: Alignment.centerRight,
+                                                  // stops: const [0.1, 0.2, 0],
+                                                )),
                                           ),
                                           AnimatedContainer(
                                             duration: const Duration(milliseconds: 300),
-                                            height: 180*math.max(0, (tankHeight<=0?0:((tankHeight-distance)/tankHeight))),
+                                            height: 180 * math.max(0, (tankHeight <= 0 ? 0 : ((tankHeight - distance) / tankHeight))),
                                           ),
                                         ],
                                       ),
@@ -577,7 +624,7 @@ class _HomeState extends State<Home> {
                                       children: [
                                         const SizedBox(height: 24),
                                         Text(
-                                         tankHeight > 0? "${(tankHeight-averageDistance)*100~/tankHeight}%" : "--%",
+                                          tankHeight > 0 ? "${(tankHeight - averageDistance) * 100 ~/ tankHeight}%" : "--%",
                                           style: Theme.of(context).textTheme.headlineMedium!.copyWith(fontWeight: FontWeight.bold),
                                         ),
                                         const SizedBox(height: 12),
@@ -671,7 +718,7 @@ class _HomeState extends State<Home> {
                                             }
                                           },
                                           child: Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                            mainAxisAlignment: MainAxisAlignment.center,
                                             children: [
                                               const SizedBox(height: 24),
                                               Text(
@@ -744,10 +791,16 @@ class _HomeState extends State<Home> {
                         ),
                       ),
                     ),
-                    const ListTile(
-                      enabled: false,
+                    ListTile(
                       leading: Icon(Icons.data_saver_off_rounded),
                       title: Text('Data from device'),
+                      // benchmark is ping Response/ms (red if > 500, green less 150)
+                      trailing: Text(
+                        '${benchmark.toInt()}ms',
+                        style: Theme.of(context).textTheme.bodySmall!.copyWith(
+                              color: benchmark > 500 ? Colors.red : Colors.green,
+                            ),
+                      ),
                     ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -860,33 +913,6 @@ class _HomeState extends State<Home> {
                                     );
                                   }
                                 },
-                              ),
-                            ),
-                            const Padding(
-                              padding: EdgeInsets.only(left: kMinInteractiveDimension),
-                              child: Divider(
-                                height: 1,
-                              ),
-                            ),
-                            ListTile(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                              minVerticalPadding: 0,
-                              leading: const Icon(Icons.wifi_protected_setup),
-                              title: const Text('Read Rate'),
-                              subtitle: Text('$readRate ms'),
-                              // two icon buttons + - in range 0 - 2000
-                              trailing: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.remove_rounded),
-                                    onPressed: readRate > 0 ? () => updateReadRate(readRate - 100) : null,
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.add_rounded),
-                                    onPressed: readRate < 2000 ? () => updateReadRate(readRate + 100) : null,
-                                  ),
-                                ],
                               ),
                             ),
                             const Padding(
@@ -1039,14 +1065,107 @@ class _HomeState extends State<Home> {
                               title: const Text('Read Docs'),
                               subtitle: Text('all info about the project'),
                               onTap: () {
-                                Navigator.of(context).push(    MaterialPageRoute<void>(
-      builder: (BuildContext context) => const AboutPage(),
-    ),
-);
+                                Navigator.of(context).push(
+                                  MaterialPageRoute<void>(
+                                    builder: (BuildContext context) => const AboutPage(),
+                                  ),
+                                );
                               },
                             ),
                           ],
                         ),
+                      ),
+                    ),
+                    // advanced
+                    const ListTile(
+                      leading: Icon(Icons.settings),
+                      title: Text('Advanced'),
+                    ),
+
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Card(
+                        margin: const EdgeInsets.all(0),
+                        color: Theme.of(context).colorScheme.surface.withOpacity(0.7),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(
+                            color: Colors.grey.withOpacity(0.5),
+                            width: 1,
+                          ),
+                        ),
+                        child: Column(children: [
+                          ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                            minVerticalPadding: 0,
+                            leading: const Icon(Icons.wifi_protected_setup),
+                            title: const Text('Read Rate'),
+                            subtitle: Text('$readRate ms'),
+                            // two icon buttons + - in range 0 - 2000
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.remove_rounded),
+                                  onPressed: readRate > 0 ? () => updateReadRate(math.max(0, readRate - 25)) : null,
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.add_rounded),
+                                  onPressed: () => updateReadRate(readRate + 25),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.only(left: kMinInteractiveDimension),
+                            child: Divider(
+                              height: 1,
+                            ),
+                          ),
+                          ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                            minVerticalPadding: 0,
+                            leading: const Icon(Icons.rotate_90_degrees_ccw),
+                            title: const Text('Notify Rate'),
+                            subtitle: Text('$notifyRate ms'),
+                            // two icon buttons + - in range 0 - 2000
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                IconButton(
+                                  icon: const Icon(Icons.remove_rounded),
+                                  onPressed: notifyRate > 0 ? () => updateNotifyRate(math.max(0, notifyRate - 25)) : null,
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.add_rounded),
+                                  onPressed: () => updateNotifyRate(notifyRate + 25),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.only(left: kMinInteractiveDimension),
+                            child: Divider(
+                              height: 1,
+                            ),
+                          ),
+                          ListTile(
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                            minVerticalPadding: 0,
+                            leading: const Icon(Icons.audio_file_outlined),
+                            title: const Text('Play Audio'),
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute<void>(
+                                  builder: (BuildContext context) =>  AudioPage(
+                                    currentHost: currentHost,
+                                  ),
+                                ),
+                              );
+                            },
+                          ),
+                        ]),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -1447,12 +1566,6 @@ Future<String> showUpdateIpDailog(BuildContext context, {String? ip}) async {
   );
 }
 
-
-
-
-
-
-
 class AboutPage extends StatelessWidget {
   const AboutPage({super.key});
 
@@ -1462,20 +1575,77 @@ class AboutPage extends StatelessWidget {
       appBar: AppBar(
         title: Text("Documents"),
       ),
-      body: ListView(
-        children: [
-          for (var i = 0; i<=13;i++)
-            Padding(
-              padding: const EdgeInsets.only(bottom:  8.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Image.asset("assets/doc/Artboard $i-80.jpg"),
-                ],
-              ),
-            ),
-        ],
+      body: SingleChildScrollView(
+        child: InteractiveViewer(
+          child: Column(
+            children: [
+              for (var i = 0; i <= 13; i++)
+                Container(
+                  padding: const EdgeInsets.only(bottom: 8.0),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth: MediaQuery.of(context).size.width,
+                        ),
+                        child: Image.asset(
+                          "assets/doc/Artboard $i-80.jpg",
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
+}
+
+
+
+// AudioPage
+class AudioPage extends StatelessWidget {
+  final String currentHost;
+  const AudioPage({super.key, required this.currentHost});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Audio"),
+      ),
+      body: SingleChildScrollView(
+        child: Column(
+          children: [
+            for (var song in songs)
+              ListTile(
+                leading: const Icon(Icons.music_note_rounded),
+                title: Text(song.split(':').first),
+                onTap: () {
+                  playSong(song);
+                },
+                trailing: const Icon(Icons.play_arrow_rounded),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  // String? song;
+  // playSong
+  Future<void> playSong(String value) async {
+    final response = await http.post(
+      Uri.parse('http://$currentHost/api?song=$value'),
+    );
+    // if (response.statusCode == 200) {
+    //   setState(() {
+    //     song = value;
+    //   });
+    // }
+  }
+
 }
