@@ -4,6 +4,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 // google fonts
 import 'package:google_fonts/google_fonts.dart';
+import 'package:iot/chatbot.dart';
 import 'package:motif/motif.dart';
 import 'package:timeago/timeago.dart' as timeago;
 // http
@@ -56,10 +57,7 @@ class App extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-        listenable: Listenable.merge([
-          themeMode,
-          themeColor
-        ]),
+        listenable: Listenable.merge([themeMode, themeColor]),
         builder: (context, snapshot) {
           return MaterialApp(
             title: 'IOT',
@@ -70,7 +68,8 @@ class App extends StatelessWidget {
               textTheme: GoogleFonts.poppinsTextTheme(),
             ),
             darkTheme: ThemeData.dark().copyWith(
-              colorScheme: ColorScheme.fromSeed(seedColor: themeColor.value, brightness: Brightness.dark),
+              colorScheme: ColorScheme.fromSeed(
+                  seedColor: themeColor.value, brightness: Brightness.dark),
               textTheme: GoogleFonts.poppinsTextTheme(
                 ThemeData.dark().textTheme,
               ),
@@ -207,6 +206,10 @@ class _HomeState extends State<Home> {
   late List<num> temperatures = [];
   late List<num> humidities = [];
   late List<num> distances = [];
+  TextEditingController chatController = TextEditingController();
+
+  List<Map<String, String>> messages = [];
+  Map<String, dynamic> arduinoData = {};
 
   WebSocketChannel? channel;
   StreamSubscription? subscription;
@@ -215,6 +218,29 @@ class _HomeState extends State<Home> {
   void initState() {
     super.initState();
     initWebSocket(connectionType);
+    arduinoData.addAll(
+      {
+        "time": time,
+        "ap_ip": ap_ip,
+        "ap_status": ap_status,
+        "wifi_ip": wifi_ip,
+        "wifi_status": wifiStatus,
+        "wifi_ssid": wifiSSID,
+        "readRate": readRate,
+        "notifyRate": notifyRate,
+        "flaged": flaged,
+        "benchmark": benchmark,
+        "distance": distance,
+        "tankHeight": tankHeight,
+        "realDistance": realDistance,
+        "averageDistance": averageDistance,
+        "temperature": temperature,
+        "fahrenheit": fahrenheit,
+        "humidity": humidity,
+        "heatindexC": heatindexC,
+        "heatindexF": heatindexF,
+      },
+    );
   }
 
   num parseUnsignedInt(dynamic value, num defaultValue) {
@@ -255,7 +281,8 @@ class _HomeState extends State<Home> {
                   backgroundColor: Colors.green,
                   behavior: SnackBarBehavior.floating,
                   width: 400.0,
-                  content: Text('Connected to $currentHost | using ${connectionType == ConnectionType.wifi ? 'wifi' : 'ap'}'),
+                  content: Text(
+                      'Connected to $currentHost | using ${connectionType == ConnectionType.wifi ? 'wifi' : 'ap'}'),
                   action: SnackBarAction(
                     label: 'hide',
                     onPressed: () {
@@ -270,6 +297,7 @@ class _HomeState extends State<Home> {
             apConnectionStatus = ConnectionStatus.connected;
           }
           final data = jsonDecode(event);
+          arduinoData = data;
           print(data);
           setState(() {
             time = data['time'] ?? time;
@@ -290,7 +318,8 @@ class _HomeState extends State<Home> {
             // realDistance = num.tryParse((data['realDistance'] ?? 0).toStringAsFixed(2)) ?? realDistance;
             realDistance = parseUnsignedInt(data['realDistance'], realDistance);
             // averageDistance = num.tryParse((data['averageDistance'] ?? 0).toStringAsFixed(2)) ?? averageDistance;
-            averageDistance = parseUnsignedInt(data['averageDistance'], averageDistance);
+            averageDistance =
+                parseUnsignedInt(data['averageDistance'], averageDistance);
             // temperature = num.tryParse((data['temperature'] ?? 0).toStringAsFixed(2)) ?? temperature;
             temperature = parseUnsignedInt(data['temperature'], temperature);
             // fahrenheit = num.tryParse((data['fahrenheit'] ?? 0).toStringAsFixed(2)) ?? fahrenheit;
@@ -328,7 +357,8 @@ class _HomeState extends State<Home> {
             SnackBar(
                 behavior: SnackBarBehavior.floating,
                 width: 400.0,
-                content: Text('Failed to connect to $currentHost | using ${connectionType == ConnectionType.wifi ? 'wifi' : 'ap'}'),
+                content: Text(
+                    'Failed to connect to $currentHost | using ${connectionType == ConnectionType.wifi ? 'wifi' : 'ap'}'),
                 action: SnackBarAction(
                   label: 'reconnect',
                   onPressed: () {
@@ -338,8 +368,11 @@ class _HomeState extends State<Home> {
                 )),
           );
           DateTime now = DateTime.now();
-          if (lastRetry == null || (lastRetry!.difference(now)).abs().inSeconds > 5) {
-            initWebSocket(connectionType == ConnectionType.ap ? ConnectionType.wifi : ConnectionType.ap);
+          if (lastRetry == null ||
+              (lastRetry!.difference(now)).abs().inSeconds > 5) {
+            initWebSocket(connectionType == ConnectionType.ap
+                ? ConnectionType.wifi
+                : ConnectionType.ap);
             lastRetry = now;
             setState(() {});
           }
@@ -435,20 +468,24 @@ class _HomeState extends State<Home> {
     }
   }
 
-  Future<void> updateWifi({required String ssid, required String password}) async {
+  Future<void> updateWifi(
+      {required String ssid, required String password}) async {
     try {
       final response = await http.post(
-        Uri.parse('http://$currentHost/api?wifi_ssid=$ssid&wifi_password=$password'),
+        Uri.parse(
+            'http://$currentHost/api?wifi_ssid=$ssid&wifi_password=$password'),
       );
     } catch (e) {
       print(e);
     }
   }
 
-  Future<void> updateAP({required String ssid, required String password}) async {
+  Future<void> updateAP(
+      {required String ssid, required String password}) async {
     try {
       final response = await http.post(
-        Uri.parse('http://$currentHost/api?ap_ssid=$ssid&ap_password=$password'),
+        Uri.parse(
+            'http://$currentHost/api?ap_ssid=$ssid&ap_password=$password'),
       );
     } catch (e) {
       print(e);
@@ -508,7 +545,8 @@ class _HomeState extends State<Home> {
                                 builder: (context) {
                                   return AlertDialog(
                                     title: const Text('Restart'),
-                                    content: const Text('Are you sure you want to restart the device?'),
+                                    content: const Text(
+                                        'Are you sure you want to restart the device?'),
                                     actions: [
                                       TextButton(
                                         onPressed: () {
@@ -542,7 +580,10 @@ class _HomeState extends State<Home> {
                             Expanded(
                               child: Card(
                                 margin: const EdgeInsets.all(0),
-                                color: Theme.of(context).colorScheme.surface.withOpacity(0.5),
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .surface
+                                    .withOpacity(0.5),
                                 elevation: 0,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -556,18 +597,23 @@ class _HomeState extends State<Home> {
                                   children: [
                                     Positioned.fill(
                                       child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.end,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.end,
                                         children: [
                                           Container(
                                             height: 1,
                                             decoration: BoxDecoration(
-                                                color: Theme.of(context).colorScheme.primary,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .primary,
                                                 gradient: LinearGradient(
                                                   colors: [
-                                                    Colors.blue.withOpacity(0.5),
+                                                    Colors.blue
+                                                        .withOpacity(0.5),
                                                     Colors.blue,
                                                     Colors.blue,
-                                                    Colors.blue.withOpacity(0.5),
+                                                    Colors.blue
+                                                        .withOpacity(0.5),
                                                   ],
                                                   begin: Alignment.centerLeft,
                                                   end: Alignment.centerRight,
@@ -575,13 +621,24 @@ class _HomeState extends State<Home> {
                                                 )),
                                           ),
                                           AnimatedContainer(
-                                            duration: const Duration(milliseconds: 300),
-                                            height: 180 * math.max(0, (tankHeight <= 0 ? 0 : ((tankHeight - averageDistance) / tankHeight))),
+                                            duration: const Duration(
+                                                milliseconds: 300),
+                                            height: 180 *
+                                                math.max(
+                                                    0,
+                                                    (tankHeight <= 0
+                                                        ? 0
+                                                        : ((tankHeight -
+                                                                averageDistance) /
+                                                            tankHeight))),
                                             decoration: BoxDecoration(
-                                                color: Theme.of(context).colorScheme.primary,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .primary,
                                                 gradient: LinearGradient(
                                                   colors: [
-                                                    Colors.blueAccent.withOpacity(0.5),
+                                                    Colors.blueAccent
+                                                        .withOpacity(0.5),
                                                     Colors.blue.withOpacity(0),
                                                   ],
                                                   begin: Alignment.topCenter,
@@ -594,18 +651,23 @@ class _HomeState extends State<Home> {
                                     ),
                                     Positioned.fill(
                                       child: Column(
-                                        mainAxisAlignment: MainAxisAlignment.end,
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.end,
                                         children: [
                                           Container(
                                             height: 1,
                                             decoration: BoxDecoration(
-                                                color: Theme.of(context).colorScheme.primary,
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .primary,
                                                 gradient: LinearGradient(
                                                   colors: [
-                                                    Colors.green.withOpacity(0.5),
+                                                    Colors.green
+                                                        .withOpacity(0.5),
                                                     Colors.blue,
                                                     Colors.blue,
-                                                    Colors.green.withOpacity(0.5),
+                                                    Colors.green
+                                                        .withOpacity(0.5),
                                                   ],
                                                   begin: Alignment.centerLeft,
                                                   end: Alignment.centerRight,
@@ -613,37 +675,57 @@ class _HomeState extends State<Home> {
                                                 )),
                                           ),
                                           AnimatedContainer(
-                                            duration: const Duration(milliseconds: 300),
-                                            height: 180 * math.max(0, (tankHeight <= 0 ? 0 : ((tankHeight - distance) / tankHeight))),
+                                            duration: const Duration(
+                                                milliseconds: 300),
+                                            height: 180 *
+                                                math.max(
+                                                    0,
+                                                    (tankHeight <= 0
+                                                        ? 0
+                                                        : ((tankHeight -
+                                                                distance) /
+                                                            tankHeight))),
                                           ),
                                         ],
                                       ),
                                     ),
                                     Column(
-                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
                                       children: [
                                         const SizedBox(height: 24),
                                         Text(
-                                          tankHeight > 0 ? "${(tankHeight - averageDistance) * 100 ~/ tankHeight}%" : "--%",
-                                          style: Theme.of(context).textTheme.headlineMedium!.copyWith(fontWeight: FontWeight.bold),
+                                          tankHeight > 0
+                                              ? "${(tankHeight - averageDistance) * 100 ~/ tankHeight}%"
+                                              : "--%",
+                                          style: Theme.of(context)
+                                              .textTheme
+                                              .headlineMedium!
+                                              .copyWith(
+                                                  fontWeight: FontWeight.bold),
                                         ),
                                         const SizedBox(height: 12),
                                         const Row(
                                           children: [],
                                         ),
                                         Row(
-                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
                                           children: [
                                             Column(
                                               children: [
-                                                const Icon(Icons.leak_add_rounded),
+                                                const Icon(
+                                                    Icons.leak_add_rounded),
                                                 Text('${distance.toInt()}cm'),
                                               ],
                                             ),
-                                            const SizedBox(height: 30, child: VerticalDivider()),
+                                            const SizedBox(
+                                                height: 30,
+                                                child: VerticalDivider()),
                                             Column(
                                               children: [
-                                                const Icon(Icons.join_full_outlined),
+                                                const Icon(
+                                                    Icons.join_full_outlined),
                                                 Text('${tankHeight.toInt()}cm'),
                                               ],
                                             ),
@@ -661,7 +743,10 @@ class _HomeState extends State<Home> {
                               flex: 2,
                               child: Card(
                                 margin: const EdgeInsets.all(0),
-                                color: Theme.of(context).colorScheme.surface.withOpacity(0.5),
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .surface
+                                    .withOpacity(0.5),
                                 elevation: 0,
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(12),
@@ -718,32 +803,54 @@ class _HomeState extends State<Home> {
                                             }
                                           },
                                           child: Column(
-                                            mainAxisAlignment: MainAxisAlignment.center,
+                                            mainAxisAlignment:
+                                                MainAxisAlignment.center,
                                             children: [
                                               const SizedBox(height: 24),
                                               Text(
                                                 displayValue,
-                                                style: Theme.of(context).textTheme.headlineMedium!.copyWith(
-                                                      fontWeight: FontWeight.bold,
+                                                style: Theme.of(context)
+                                                    .textTheme
+                                                    .headlineMedium!
+                                                    .copyWith(
+                                                      fontWeight:
+                                                          FontWeight.bold,
                                                     ),
                                               ),
                                               const SizedBox(width: 8),
                                               Row(
-                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
                                                 children: [
                                                   // connection status
                                                   Container(
                                                     width: 30,
                                                     height: 20,
-                                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                    padding: const EdgeInsets
+                                                        .symmetric(
+                                                        horizontal: 8,
+                                                        vertical: 4),
                                                     decoration: BoxDecoration(
-                                                      borderRadius: BorderRadius.circular(12),
-                                                      color: currentConnectionStatus.color.withOpacity(0.2),
+                                                      borderRadius:
+                                                          BorderRadius.circular(
+                                                              12),
+                                                      color:
+                                                          currentConnectionStatus
+                                                              .color
+                                                              .withOpacity(0.2),
                                                     ),
                                                     child: Center(
                                                       child: Icon(
-                                                        currentConnectionStatus == ConnectionStatus.connected ? connectionType.connectedIcon : connectionType.disconnectedIcon,
-                                                        color: currentConnectionStatus.color,
+                                                        currentConnectionStatus ==
+                                                                ConnectionStatus
+                                                                    .connected
+                                                            ? connectionType
+                                                                .connectedIcon
+                                                            : connectionType
+                                                                .disconnectedIcon,
+                                                        color:
+                                                            currentConnectionStatus
+                                                                .color,
                                                         size: 12,
                                                       ),
                                                     ),
@@ -752,7 +859,8 @@ class _HomeState extends State<Home> {
                                                   // if (lastRetry != null)
                                                   //   Text("retry in "+(lastRetry!.difference(DateTime.now()).abs().inSeconds.toString())+"...")
                                                   //   else
-                                                  Text(timeago.format(appStartAt)),
+                                                  Text(timeago
+                                                      .format(appStartAt)),
                                                 ],
                                               ),
                                               const SizedBox(height: 12),
@@ -760,18 +868,23 @@ class _HomeState extends State<Home> {
                                                 children: [],
                                               ),
                                               Row(
-                                                mainAxisAlignment: MainAxisAlignment.center,
+                                                mainAxisAlignment:
+                                                    MainAxisAlignment.center,
                                                 children: [
                                                   Column(
                                                     children: [
-                                                      const Icon(Icons.device_thermostat_rounded),
+                                                      const Icon(Icons
+                                                          .device_thermostat_rounded),
                                                       Text('$temperature °C'),
                                                     ],
                                                   ),
-                                                  const SizedBox(height: 30, child: VerticalDivider()),
+                                                  const SizedBox(
+                                                      height: 30,
+                                                      child: VerticalDivider()),
                                                   Column(
                                                     children: [
-                                                      const Icon(Icons.water_rounded),
+                                                      const Icon(
+                                                          Icons.water_rounded),
                                                       Text('$humidity %'),
                                                     ],
                                                   ),
@@ -798,7 +911,8 @@ class _HomeState extends State<Home> {
                       trailing: Text(
                         '${benchmark.toInt()}ms',
                         style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                              color: benchmark > 500 ? Colors.red : Colors.green,
+                              color:
+                                  benchmark > 500 ? Colors.red : Colors.green,
                             ),
                       ),
                     ),
@@ -806,7 +920,10 @@ class _HomeState extends State<Home> {
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Card(
                         margin: const EdgeInsets.all(0),
-                        color: Theme.of(context).colorScheme.surface.withOpacity(0.7),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surface
+                            .withOpacity(0.7),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -819,14 +936,16 @@ class _HomeState extends State<Home> {
                           children: [
                             ListTile(
                               onLongPress: () async {
-                                var ip = await showUpdateIpDailog(context, ip: wifi_ip);
+                                var ip = await showUpdateIpDailog(context,
+                                    ip: wifi_ip);
                                 if (ip != null) {
                                   wifi_ip = ip;
                                   initWebSocket(ConnectionType.wifi);
                                 }
                               },
                               onTap: () {
-                                if (currentConnectionStatus == ConnectionStatus.connected) {
+                                if (currentConnectionStatus ==
+                                    ConnectionStatus.connected) {
                                   disconnect();
                                   if (connectionType == ConnectionType.ap) {
                                     initWebSocket(ConnectionType.wifi);
@@ -835,9 +954,19 @@ class _HomeState extends State<Home> {
                                   initWebSocket(ConnectionType.wifi);
                                 }
                               },
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                              contentPadding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
                               minVerticalPadding: 0,
-                              leading: wifiConnectionStatus == ConnectionStatus.connecting ? const CircularProgressIndicator.adaptive() : Icon(wifiConnectionStatus == ConnectionStatus.connected ? ConnectionType.wifi.connectedIcon : ConnectionType.wifi.disconnectedIcon, color: wifiConnectionStatus.color),
+                              leading: wifiConnectionStatus ==
+                                      ConnectionStatus.connecting
+                                  ? const CircularProgressIndicator.adaptive()
+                                  : Icon(
+                                      wifiConnectionStatus ==
+                                              ConnectionStatus.connected
+                                          ? ConnectionType.wifi.connectedIcon
+                                          : ConnectionType
+                                              .wifi.disconnectedIcon,
+                                      color: wifiConnectionStatus.color),
                               title: Row(
                                 children: [
                                   const Text('Wifi IP'),
@@ -849,13 +978,23 @@ class _HomeState extends State<Home> {
                                 children: [
                                   Text(wifi_ip),
                                   const SizedBox(width: 8),
-                                  Text("$wifiSSID | $wifiStatus", style: Theme.of(context).textTheme.bodySmall!.copyWith(color: Theme.of(context).colorScheme.onBackground.withOpacity(0.5), fontSize: 10)),
+                                  Text("$wifiSSID | $wifiStatus",
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall!
+                                          .copyWith(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onBackground
+                                                  .withOpacity(0.5),
+                                              fontSize: 10)),
                                 ],
                               ),
                               trailing: IconButton(
                                 icon: const Icon(Icons.edit),
                                 onPressed: () async {
-                                  var data = await showWifiUpdateDailog(context, ssid: wifiSSID, password: "iotiotiot");
+                                  var data = await showWifiUpdateDailog(context,
+                                      ssid: wifiSSID, password: "iotiotiot");
                                   if (data != null) {
                                     updateWifi(
                                       ssid: data.ssid,
@@ -866,21 +1005,24 @@ class _HomeState extends State<Home> {
                               ),
                             ),
                             const Padding(
-                              padding: EdgeInsets.only(left: kMinInteractiveDimension),
+                              padding: EdgeInsets.only(
+                                  left: kMinInteractiveDimension),
                               child: Divider(
                                 height: 1,
                               ),
                             ),
                             ListTile(
                               onLongPress: () async {
-                                var ip = await showUpdateIpDailog(context, ip: ap_ip);
+                                var ip = await showUpdateIpDailog(context,
+                                    ip: ap_ip);
                                 if (ip != null) {
                                   ap_ip = ip;
                                   initWebSocket(ConnectionType.ap);
                                 }
                               },
                               onTap: () {
-                                if (currentConnectionStatus == ConnectionStatus.connected) {
+                                if (currentConnectionStatus ==
+                                    ConnectionStatus.connected) {
                                   disconnect();
                                   if (connectionType == ConnectionType.wifi) {
                                     initWebSocket(ConnectionType.ap);
@@ -889,23 +1031,42 @@ class _HomeState extends State<Home> {
                                   initWebSocket(ConnectionType.ap);
                                 }
                               },
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                              contentPadding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
                               minVerticalPadding: 0,
-                              leading: apConnectionStatus == ConnectionStatus.connecting ? const CircularProgressIndicator.adaptive() : Icon(apConnectionStatus == ConnectionStatus.connected ? ConnectionType.ap.connectedIcon : ConnectionType.ap.disconnectedIcon, color: apConnectionStatus.color),
+                              leading: apConnectionStatus ==
+                                      ConnectionStatus.connecting
+                                  ? const CircularProgressIndicator.adaptive()
+                                  : Icon(
+                                      apConnectionStatus ==
+                                              ConnectionStatus.connected
+                                          ? ConnectionType.ap.connectedIcon
+                                          : ConnectionType.ap.disconnectedIcon,
+                                      color: apConnectionStatus.color),
                               title: Row(
                                 children: [
                                   const Text('AP IP'),
                                   const SizedBox(width: 8),
                                   buildConnect(apConnectionStatus),
                                   const SizedBox(width: 8),
-                                  Text(ap_status, style: Theme.of(context).textTheme.bodySmall!.copyWith(color: Theme.of(context).colorScheme.onBackground.withOpacity(0.5), fontSize: 10)),
+                                  Text(ap_status,
+                                      style: Theme.of(context)
+                                          .textTheme
+                                          .bodySmall!
+                                          .copyWith(
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .onBackground
+                                                  .withOpacity(0.5),
+                                              fontSize: 10)),
                                 ],
                               ),
                               subtitle: Text(ap_ip),
                               trailing: IconButton(
                                 icon: const Icon(Icons.edit),
                                 onPressed: () async {
-                                  var data = await showWifiUpdateDailog(context, ssid: "IOT_AP", password: "iotiotiot");
+                                  var data = await showWifiUpdateDailog(context,
+                                      ssid: "IOT_AP", password: "iotiotiot");
                                   if (data != null) {
                                     updateAP(
                                       ssid: data.ssid,
@@ -916,7 +1077,8 @@ class _HomeState extends State<Home> {
                               ),
                             ),
                             const Padding(
-                              padding: EdgeInsets.only(left: kMinInteractiveDimension),
+                              padding: EdgeInsets.only(
+                                  left: kMinInteractiveDimension),
                               child: Divider(
                                 height: 1,
                               ),
@@ -925,10 +1087,13 @@ class _HomeState extends State<Home> {
                               onTap: () {
                                 updateFlaged(flaged == 1 ? 0 : 1);
                               },
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                              contentPadding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
                               minVerticalPadding: 0,
                               leading: Icon(
-                                flaged == 1 ? Icons.lightbulb_sharp : Icons.lightbulb_outline_rounded,
+                                flaged == 1
+                                    ? Icons.lightbulb_sharp
+                                    : Icons.lightbulb_outline_rounded,
                                 color: flaged == 1 ? Colors.amber : null,
                               ),
                               title: const Text('Flaged'),
@@ -940,23 +1105,28 @@ class _HomeState extends State<Home> {
                                 },
                                 thumbIcon: MaterialStateProperty.all(
                                   Icon(
-                                    flaged == 1 ? Icons.light_mode_rounded : Icons.light_mode,
+                                    flaged == 1
+                                        ? Icons.light_mode_rounded
+                                        : Icons.light_mode,
                                   ),
                                 ),
                               ),
                             ),
                             const Padding(
-                              padding: EdgeInsets.only(left: kMinInteractiveDimension),
+                              padding: EdgeInsets.only(
+                                  left: kMinInteractiveDimension),
                               child: Divider(
                                 height: 1,
                               ),
                             ),
                             ListTile(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                              contentPadding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
                               minVerticalPadding: 0,
                               leading: const Icon(Icons.water_drop_outlined),
                               title: const Text('Distance'),
-                              subtitle: Text('$distance cm / max ${tankHeight}%'),
+                              subtitle:
+                                  Text('$distance cm / max ${tankHeight}%'),
                               // dialog to update it
                               trailing: IconButton(
                                 icon: const Icon(Icons.edit),
@@ -964,7 +1134,8 @@ class _HomeState extends State<Home> {
                                   var data = await showDialog(
                                       context: context,
                                       builder: (context) {
-                                        var value = TextEditingController(text: tankHeight.toString());
+                                        var value = TextEditingController(
+                                            text: tankHeight.toString());
                                         return AlertDialog(
                                           title: const Text('Update Distance'),
                                           content: Column(
@@ -972,15 +1143,19 @@ class _HomeState extends State<Home> {
                                             children: [
                                               TextFormField(
                                                 controller: value,
-                                                decoration: const InputDecoration(
+                                                decoration:
+                                                    const InputDecoration(
                                                   isDense: true,
                                                   labelText: 'Tank Height',
                                                   border: OutlineInputBorder(),
-                                                  prefixIcon: Icon(Icons.water_rounded),
+                                                  prefixIcon:
+                                                      Icon(Icons.water_rounded),
                                                 ),
-                                                keyboardType: TextInputType.number,
+                                                keyboardType:
+                                                    TextInputType.number,
                                                 validator: (value) {
-                                                  if (value == null || value.isEmpty) {
+                                                  if (value == null ||
+                                                      value.isEmpty) {
                                                     return 'Please enter tank height';
                                                   }
                                                   return null;
@@ -999,7 +1174,8 @@ class _HomeState extends State<Home> {
                                               icon: const Icon(Icons.done_all),
                                               onPressed: () {
                                                 if (num.parse(value.text) > 0) {
-                                                  Navigator.pop(context, num.parse(value.text));
+                                                  Navigator.pop(context,
+                                                      num.parse(value.text));
                                                 }
                                               },
                                               label: const Text('Update'),
@@ -1014,52 +1190,61 @@ class _HomeState extends State<Home> {
                               ),
                             ),
                             const Padding(
-                              padding: EdgeInsets.only(left: kMinInteractiveDimension),
+                              padding: EdgeInsets.only(
+                                  left: kMinInteractiveDimension),
                               child: Divider(
                                 height: 1,
                               ),
                             ),
                             ListTile(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                              contentPadding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
                               minVerticalPadding: 0,
                               leading: const Icon(Icons.thermostat_rounded),
                               title: const Text('Temperature'),
-                              subtitle: Text('$temperature °C / $fahrenheit °F'),
+                              subtitle:
+                                  Text('$temperature °C / $fahrenheit °F'),
                             ),
                             const Padding(
-                              padding: EdgeInsets.only(left: kMinInteractiveDimension),
+                              padding: EdgeInsets.only(
+                                  left: kMinInteractiveDimension),
                               child: Divider(
                                 height: 1,
                               ),
                             ),
                             ListTile(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                              contentPadding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
                               minVerticalPadding: 0,
                               leading: const Icon(Icons.water_rounded),
                               title: const Text('Humidity'),
                               subtitle: Text('$humidity %'),
                             ),
                             const Padding(
-                              padding: EdgeInsets.only(left: kMinInteractiveDimension),
+                              padding: EdgeInsets.only(
+                                  left: kMinInteractiveDimension),
                               child: Divider(
                                 height: 1,
                               ),
                             ),
                             ListTile(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                              contentPadding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
                               minVerticalPadding: 0,
                               leading: const Icon(Icons.thermostat_rounded),
                               title: const Text('Heat Index'),
                               subtitle: Text('$heatindexC °C / $heatindexF °F'),
                             ),
                             const Padding(
-                              padding: EdgeInsets.only(left: kMinInteractiveDimension),
+                              padding: EdgeInsets.only(
+                                  left: kMinInteractiveDimension),
                               child: Divider(
                                 height: 1,
                               ),
                             ),
                             ListTile(
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                              contentPadding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
                               minVerticalPadding: 0,
                               leading: const Icon(Icons.file_present_outlined),
                               title: const Text('Read Docs'),
@@ -1067,7 +1252,8 @@ class _HomeState extends State<Home> {
                               onTap: () {
                                 Navigator.of(context).push(
                                   MaterialPageRoute<void>(
-                                    builder: (BuildContext context) => const AboutPage(),
+                                    builder: (BuildContext context) =>
+                                        const AboutPage(),
                                   ),
                                 );
                               },
@@ -1086,7 +1272,10 @@ class _HomeState extends State<Home> {
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Card(
                         margin: const EdgeInsets.all(0),
-                        color: Theme.of(context).colorScheme.surface.withOpacity(0.7),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surface
+                            .withOpacity(0.7),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -1097,7 +1286,8 @@ class _HomeState extends State<Home> {
                         ),
                         child: Column(children: [
                           ListTile(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                            contentPadding:
+                                const EdgeInsets.symmetric(horizontal: 16),
                             minVerticalPadding: 0,
                             leading: const Icon(Icons.wifi_protected_setup),
                             title: const Text('Read Rate'),
@@ -1108,23 +1298,29 @@ class _HomeState extends State<Home> {
                               children: [
                                 IconButton(
                                   icon: const Icon(Icons.remove_rounded),
-                                  onPressed: readRate > 0 ? () => updateReadRate(math.max(0, readRate - 25)) : null,
+                                  onPressed: readRate > 0
+                                      ? () => updateReadRate(
+                                          math.max(0, readRate - 25))
+                                      : null,
                                 ),
                                 IconButton(
                                   icon: const Icon(Icons.add_rounded),
-                                  onPressed: () => updateReadRate(readRate + 25),
+                                  onPressed: () =>
+                                      updateReadRate(readRate + 25),
                                 ),
                               ],
                             ),
                           ),
                           const Padding(
-                            padding: EdgeInsets.only(left: kMinInteractiveDimension),
+                            padding:
+                                EdgeInsets.only(left: kMinInteractiveDimension),
                             child: Divider(
                               height: 1,
                             ),
                           ),
                           ListTile(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                            contentPadding:
+                                const EdgeInsets.symmetric(horizontal: 16),
                             minVerticalPadding: 0,
                             leading: const Icon(Icons.rotate_90_degrees_ccw),
                             title: const Text('Notify Rate'),
@@ -1135,30 +1331,36 @@ class _HomeState extends State<Home> {
                               children: [
                                 IconButton(
                                   icon: const Icon(Icons.remove_rounded),
-                                  onPressed: notifyRate > 0 ? () => updateNotifyRate(math.max(0, notifyRate - 25)) : null,
+                                  onPressed: notifyRate > 0
+                                      ? () => updateNotifyRate(
+                                          math.max(0, notifyRate - 25))
+                                      : null,
                                 ),
                                 IconButton(
                                   icon: const Icon(Icons.add_rounded),
-                                  onPressed: () => updateNotifyRate(notifyRate + 25),
+                                  onPressed: () =>
+                                      updateNotifyRate(notifyRate + 25),
                                 ),
                               ],
                             ),
                           ),
                           const Padding(
-                            padding: EdgeInsets.only(left: kMinInteractiveDimension),
+                            padding:
+                                EdgeInsets.only(left: kMinInteractiveDimension),
                             child: Divider(
                               height: 1,
                             ),
                           ),
                           ListTile(
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                            contentPadding:
+                                const EdgeInsets.symmetric(horizontal: 16),
                             minVerticalPadding: 0,
                             leading: const Icon(Icons.audio_file_outlined),
                             title: const Text('Play Audio'),
                             onTap: () {
                               Navigator.of(context).push(
                                 MaterialPageRoute<void>(
-                                  builder: (BuildContext context) =>  AudioPage(
+                                  builder: (BuildContext context) => AudioPage(
                                     currentHost: currentHost,
                                   ),
                                 ),
@@ -1168,12 +1370,48 @@ class _HomeState extends State<Home> {
                         ]),
                       ),
                     ),
+
                     const SizedBox(height: 24),
                     // copy right
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Card(
+                        margin: const EdgeInsets.all(0),
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surface
+                            .withOpacity(0.7),
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          side: BorderSide(
+                            color: Colors.grey.withOpacity(0.5),
+                            width: 1,
+                          ),
+                        ),
+                        child: ListTile(
+                          leading: const Icon(Icons.info),
+                          title: const Text('chat with out bot'),
+                          subtitle: const Text('bot'),
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                  builder: (BuildContext context) => ChatScreen(
+                                        arduinoData: arduinoData,
+                                      )),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+
                     Text(
                       'MOHAMADLOUNNAS © 2024 | USDB',
                       style: Theme.of(context).textTheme.bodySmall!.copyWith(
-                            color: Theme.of(context).colorScheme.onBackground.withOpacity(0.5),
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onBackground
+                                .withOpacity(0.5),
                           ),
                     ),
                     const SizedBox(height: 24),
@@ -1242,7 +1480,9 @@ class _GriedentGraphPainter extends CustomPainter {
       ..style = PaintingStyle.fill;
     final linePaint = Paint()
       ..strokeWidth = theme2 ? 2 : 1
-      ..color = theme2 ? Theme.of(context).colorScheme.secondary : Theme.of(context).colorScheme.primary
+      ..color = theme2
+          ? Theme.of(context).colorScheme.secondary
+          : Theme.of(context).colorScheme.primary
       ..strokeCap = StrokeCap.round
       ..style = PaintingStyle.stroke;
 
@@ -1378,7 +1618,8 @@ Future<
             TextButton.icon(
               icon: const Icon(Icons.done_all),
               onPressed: () {
-                if (ssidController.text.isNotEmpty && passwordController.text.isNotEmpty) {
+                if (ssidController.text.isNotEmpty &&
+                    passwordController.text.isNotEmpty) {
                   Navigator.pop(context, (
                     ssid: ssidController.text,
                     password: passwordController.text,
@@ -1604,8 +1845,6 @@ class AboutPage extends StatelessWidget {
   }
 }
 
-
-
 // AudioPage
 class AudioPage extends StatelessWidget {
   final String currentHost;
@@ -1634,7 +1873,7 @@ class AudioPage extends StatelessWidget {
       ),
     );
   }
-  
+
   // String? song;
   // playSong
   Future<void> playSong(String value) async {
@@ -1647,5 +1886,4 @@ class AudioPage extends StatelessWidget {
     //   });
     // }
   }
-
 }
