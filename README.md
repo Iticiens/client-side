@@ -1,8 +1,8 @@
 # Logistics & Transportation Management App
 
 <p align="center">
-  <img src="readme_assets/logo_light.png" width="200" alt="App Logo Light"/>
-  <img src="readme_assets/logo_dark.png" width="200" alt="App Logo Dark"/>
+  <img src="https://github.com/Iticiens/client-side/blob/main/readme_assets/login.png" width="200" alt="App Logo Light"/>
+  <img src="https://github.com/Iticiens/client-side/blob/main/readme_assets/login_desk.png" width="200" alt="App Logo Dark"/>
 </p>
 
 ## Overview
@@ -12,23 +12,23 @@ Our solution is a modern Flutter application designed for efficient logistics an
 
 ### Client Interface
 <p align="center">
-  <img src="readme_assets/client/map_view.png" width="250" alt="Map View"/>
-  <img src="readme_assets/client/orders_list.png" width="250" alt="Orders List"/>
-  <img src="readme_assets/client/truck_tracking.png" width="250" alt="Truck Tracking"/>
+  <img src="https://github.com/Iticiens/client-side/blob/main/readme_assets/fix_trucks.png" width="250" alt="Map View"/>
+  <img src="https://github.com/Iticiens/client-side/blob/main/readme_assets/line.png" width="250" alt="Orders List"/>
+  <img src="https://github.com/Iticiens/client-side/blob/main/readme_assets/orders.png" width="250" alt="Truck Tracking"/>
 </p>
 
 ### Driver Interface
 <p align="center">
-  <img src="readme_assets/driver/navigation.png" width="250" alt="Navigation"/>
-  <img src="readme_assets/driver/speed_monitor.png" width="250" alt="Speed Monitor"/>
-  <img src="readme_assets/driver/status_update.png" width="250" alt="Status Update"/>
+  <img src="https://github.com/Iticiens/client-side/blob/main/readme_assets/temp_simulation.png" width="250" alt="Navigation"/>
+  <img src="https://github.com/Iticiens/client-side/blob/main/readme_assets/points.png" width="250" alt="Speed Monitor"/>
+  <img src="https://github.com/Iticiens/client-side/blob/main/readme_assets/report_problem.png" width="250" alt="Status Update"/>
 </p>
 
 ### QR Scanner & Verification
 <p align="center">
-  <img src="https://github.com/Iticiens/client-side/tree/main/readme_assets/qr_scanner.png" width="250" alt="QR Scanner"/>
-  <img src="readme_assets/features/verification_success.png" width="250" alt="Verification Success"/>
-  <img src="readme_assets/features/truck_details.png" width="250" alt="Truck Details"/>
+  <img src="https://github.com/Iticiens/client-side/blob/main/readme_assets/report_problem.png" width="250" alt="QR Scanner"/>
+  <img src="https://github.com/Iticiens/client-side/blob/main/readme_assets/features/verification_success.png" width="250" alt="Verification Success"/>
+  <img src="https://github.com/Iticiens/client-side/blob/main/readme_assets/features/truck_details.png" width="250" alt="Truck Details"/>
 </p>
 
 ### Analytics & Reports
