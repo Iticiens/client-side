@@ -109,5 +109,5 @@ We welcome contributions! Feel free to submit issues or pull requests to improve
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Contact
-For any inquiries, reach out to us at [your-email@example.com](mailto: aminemenadi09@gmail.com).
+For any inquiries, reach out to us at [aminemenadi09@gmail.com](mailto: aminemenadi09@gmail.com).
 
