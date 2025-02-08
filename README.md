@@ -26,10 +26,10 @@ Our solution is a modern Flutter application designed for efficient logistics an
 
 ## Technologies Used
 - **Flutter** (Cross-platform development)
-- **Firebase / Backend Solution** (Data storage & real-time sync)
-- **Google Maps API** (Real-time tracking & route optimization)
+- **Golang with Pocketbase / Backend Solution** (Data storage & real-time sync)
+- **Open Street Map** (Real-time tracking & route optimization)
 - **QR Code Scanning** (Order & driver verification)
-- **Local Database** (Offline storage & synchronization)
+- **Local Database** (Local First architecture storage & synchronization)
 
 ## Installation & Setup
 1. **Clone the repository:**
@@ -57,6 +57,8 @@ Our solution is a modern Flutter application designed for efficient logistics an
      ```bash
      flutter run -d windows/mac/linux
      ```
+
+     
 
 ## Contribution
 We welcome contributions! Feel free to submit issues or pull requests to improve the application.
