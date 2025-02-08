@@ -1,7 +1,8 @@
 # Logistics & Transportation Management App
 
 <p align="center">
-  <img src="readmepicture/logo.png" width="200" alt="App Logo"/>
+  <img src="readme_assets/logo_light.png" width="200" alt="App Logo Light"/>
+  <img src="readme_assets/logo_dark.png" width="200" alt="App Logo Dark"/>
 </p>
 
 ## Overview
@@ -9,30 +10,41 @@ Our solution is a modern Flutter application designed for efficient logistics an
 
 ## 📱 App Screenshots
 
-### Light Theme
+### Client Interface
 <p align="center">
-  <img src="readmepicture/light/login.png" width="200" alt="Login Screen"/>
-  <img src="readmepicture/light/home.png" width="200" alt="Home Screen"/>
-  <img src="readmepicture/light/trucks.png" width="200" alt="Trucks Screen"/>
+  <img src="readme_assets/client/map_view.png" width="250" alt="Map View"/>
+  <img src="readme_assets/client/orders_list.png" width="250" alt="Orders List"/>
+  <img src="readme_assets/client/truck_tracking.png" width="250" alt="Truck Tracking"/>
 </p>
 
+### Driver Interface
 <p align="center">
-  <img src="readmepicture/light/orders.png" width="200" alt="Orders Screen"/>
-  <img src="readmepicture/light/qr.png" width="200" alt="QR Scanner"/>
-  <img src="readmepicture/light/profile.png" width="200" alt="Profile Screen"/>
+  <img src="readme_assets/driver/navigation.png" width="250" alt="Navigation"/>
+  <img src="readme_assets/driver/speed_monitor.png" width="250" alt="Speed Monitor"/>
+  <img src="readme_assets/driver/status_update.png" width="250" alt="Status Update"/>
 </p>
 
-### Dark Theme
+### QR Scanner & Verification
 <p align="center">
-  <img src="readmepicture/dark/login.png" width="200" alt="Login Screen Dark"/>
-  <img src="readmepicture/dark/home.png" width="200" alt="Home Screen Dark"/>
-  <img src="readmepicture/dark/trucks.png" width="200" alt="Trucks Screen Dark"/>
+  <img src="readme_assets/features/qr_scanner.png" width="250" alt="QR Scanner"/>
+  <img src="readme_assets/features/verification_success.png" width="250" alt="Verification Success"/>
+  <img src="readme_assets/features/truck_details.png" width="250" alt="Truck Details"/>
 </p>
 
+### Analytics & Reports
 <p align="center">
-  <img src="readmepicture/dark/orders.png" width="200" alt="Orders Screen Dark"/>
-  <img src="readmepicture/dark/qr.png" width="200" alt="QR Scanner Dark"/>
-  <img src="readmepicture/dark/profile.png" width="200" alt="Profile Screen Dark"/>
+  <img src="readme_assets/analytics/dashboard.png" width="250" alt="Dashboard"/>
+  <img src="readme_assets/analytics/performance.png" width="250" alt="Performance Metrics"/>
+  <img src="readme_assets/analytics/reports.png" width="250" alt="Reports"/>
+</p>
+
+### Responsive Design
+<p align="center">
+  <img src="readme_assets/responsive/desktop.png" width="600" alt="Desktop View"/>
+</p>
+<p align="center">
+  <img src="readme_assets/responsive/tablet.png" width="400" alt="Tablet View"/>
+  <img src="readme_assets/responsive/mobile.png" width="200" alt="Mobile View"/>
 </p>
 
 ## Features
@@ -97,5 +109,5 @@ We welcome contributions! Feel free to submit issues or pull requests to improve
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## Contact
-For any inquiries, reach out to us at [your-email@example.com](mailto:your-email@example.com).
+For any inquiries, reach out to us at [your-email@example.com](mailto: aminemenadi09@gmail.com).
 
