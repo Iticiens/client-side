@@ -26,25 +26,25 @@ Our solution is a modern Flutter application designed for efficient logistics an
 
 ### QR Scanner & Verification
 <p align="center">
-  <img src="readme_assets/features/qr_scanner.png" width="250" alt="QR Scanner"/>
+  <img src="https://github.com/Iticiens/client-side/tree/main/readme_assets/qr_scanner.png" width="250" alt="QR Scanner"/>
   <img src="readme_assets/features/verification_success.png" width="250" alt="Verification Success"/>
   <img src="readme_assets/features/truck_details.png" width="250" alt="Truck Details"/>
 </p>
 
 ### Analytics & Reports
 <p align="center">
-  <img src="readme_assets/analytics/dashboard.png" width="250" alt="Dashboard"/>
-  <img src="readme_assets/analytics/performance.png" width="250" alt="Performance Metrics"/>
-  <img src="readme_assets/analytics/reports.png" width="250" alt="Reports"/>
+  <img src="https://github.com/Iticiens/client-side/tree/main/readme_assets/analytics/dashboard.png" width="250" alt="Dashboard"/>
+  <img src="https://github.com/Iticiens/client-side/tree/main/readme_assets/analytics/performance.png" width="250" alt="Performance Metrics"/>
+  <img src="https://github.com/Iticiens/client-side/tree/main/readme_assets/analytics/reports.png" width="250" alt="Reports"/>
 </p>
 
 ### Responsive Design
 <p align="center">
-  <img src="readme_assets/responsive/desktop.png" width="600" alt="Desktop View"/>
+  <img src="https://github.com/Iticiens/client-side/tree/main/readme_assets/responsive/desktop.png" width="600" alt="Desktop View"/>
 </p>
 <p align="center">
-  <img src="readme_assets/responsive/tablet.png" width="400" alt="Tablet View"/>
-  <img src="readme_assets/responsive/mobile.png" width="200" alt="Mobile View"/>
+  <img src="https://github.com/Iticiens/client-side/tree/main/readme_assets/responsive/tablet.png" width="400" alt="Tablet View"/>
+  <img src="https://github.com/Iticiens/client-side/tree/main/readme_assets/responsive/mobile.png" width="200" alt="Mobile View"/>
 </p>
 
 ## Features
