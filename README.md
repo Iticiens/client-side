@@ -5,7 +5,7 @@
   <img src="https://github.com/Iticiens/client-side/blob/main/readme_assets/login_desk.png" width="200" alt="App Logo Dark"/>
 </p>
 
-## Overview
+## Overview(demo https://www.youtube.com/watch?v=YIMXxOvVDkE)
 Our solution is a modern Flutter application designed for efficient logistics and transportation management. It features real-time truck tracking, order management, and QR code-based verification. The application is cross-platform, working seamlessly on web, mobile, and desktop.
 
 ## 📱 App Screenshots
