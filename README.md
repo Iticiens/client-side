@@ -1,7 +1,39 @@
 # Logistics & Transportation Management App
 
+<p align="center">
+  <img src="readmepicture/logo.png" width="200" alt="App Logo"/>
+</p>
+
 ## Overview
 Our solution is a modern Flutter application designed for efficient logistics and transportation management. It features real-time truck tracking, order management, and QR code-based verification. The application is cross-platform, working seamlessly on web, mobile, and desktop.
+
+## 📱 App Screenshots
+
+### Light Theme
+<p align="center">
+  <img src="readmepicture/light/login.png" width="200" alt="Login Screen"/>
+  <img src="readmepicture/light/home.png" width="200" alt="Home Screen"/>
+  <img src="readmepicture/light/trucks.png" width="200" alt="Trucks Screen"/>
+</p>
+
+<p align="center">
+  <img src="readmepicture/light/orders.png" width="200" alt="Orders Screen"/>
+  <img src="readmepicture/light/qr.png" width="200" alt="QR Scanner"/>
+  <img src="readmepicture/light/profile.png" width="200" alt="Profile Screen"/>
+</p>
+
+### Dark Theme
+<p align="center">
+  <img src="readmepicture/dark/login.png" width="200" alt="Login Screen Dark"/>
+  <img src="readmepicture/dark/home.png" width="200" alt="Home Screen Dark"/>
+  <img src="readmepicture/dark/trucks.png" width="200" alt="Trucks Screen Dark"/>
+</p>
+
+<p align="center">
+  <img src="readmepicture/dark/orders.png" width="200" alt="Orders Screen Dark"/>
+  <img src="readmepicture/dark/qr.png" width="200" alt="QR Scanner Dark"/>
+  <img src="readmepicture/dark/profile.png" width="200" alt="Profile Screen Dark"/>
+</p>
 
 ## Features
 
@@ -57,8 +89,6 @@ Our solution is a modern Flutter application designed for efficient logistics an
      ```bash
      flutter run -d windows/mac/linux
      ```
-
-     
 
 ## Contribution
 We welcome contributions! Feel free to submit issues or pull requests to improve the application.
