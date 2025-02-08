@@ -33,7 +33,7 @@ Our solution is a modern Flutter application designed for efficient logistics an
 
 ### Analytics & Reports
 <p align="center">
-  <img src="https://github.com/Iticiens/client-side/tree/main/readme_assets/analytics/dashboard.png" width="250" alt="Dashboard"/>
+  <img src="https://github.com/Iticiens/client-side/blob/main/readme_assets/line.png" width="250" alt="Dashboard"/>
   <img src="https://github.com/Iticiens/client-side/tree/main/readme_assets/analytics/performance.png" width="250" alt="Performance Metrics"/>
   <img src="https://github.com/Iticiens/client-side/tree/main/readme_assets/analytics/reports.png" width="250" alt="Reports"/>
 </p>
