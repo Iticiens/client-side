@@ -1,17 +1,39 @@
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:math' show Random, pi, cos, sin;
+import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 // google fonts
 import 'package:google_fonts/google_fonts.dart';
 import 'package:iot/chatbot.dart';
+import 'package:iot/core/theme/app_theme.dart';
+import 'package:iot/pages/map_page.dart';
+import 'package:iot/pages/settings_page.dart';
+import 'package:iot/pages/speed_page.dart';
+import 'package:iot/providers/auth_provider.dart';
+import 'package:iot/providers/trips_provider.dart';
+import 'package:iot/providers/trucks_provider.dart';
+import 'package:iot/repository/trips_repository.dart';
+import 'package:iot/repository/trucks_repository.dart';
+import 'package:iot/simulation_service.dart';
+import 'package:iot/widgets/app_layout.dart';
 import 'package:motif/motif.dart';
+import 'package:pocketbase/pocketbase.dart';
 import 'package:timeago/timeago.dart' as timeago;
 // http
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 // web socket
 import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:iot/widgets/speedometer.dart';
+import 'package:iot/pages/about_page.dart'; // Add this import
+import 'package:iot/core/navigation/routes.dart';
+import 'package:provider/provider.dart';
+import 'package:iot/core/providers/auth_provider.dart';
+import 'package:iot/repository/auth_repository.dart';
+import 'package:iot/pages/login_page.dart';
 
 var songs = [
   "The Simpsons:d=4,o=5,b=160:c.6,e6,f#6,8a6,g.6,e6,c6,8a,8f#,8f#,8f#,2g,8p,8p,8f#,8f#,8f#,8g,a#.,8c6,8c6,8c6,c6",
@@ -23,8 +45,8 @@ var songs = [
   "Looney:d=4,o=5,b=140:32p,c6,8f6,8e6,8d6,8c6,a.,8c6,8f6,8e6,8d6,8d#6,e.6,8e6,8e6,8c6,8d6,8c6,8e6,8c6,8d6,8a,8c6,8g,8a#,8a,8f",
   "20thCenFox:d=16,o=5,b=140:b,8p,b,b,2b,p,c6,32p,b,32p,c6,32p,b,32p,c6,32p,b,8p,b,b,b,32p,b,32p,b,32p,b,32p,b,32p,b,32p,b,32p,g#,32p,a,32p,b,8p,b,b,2b,4p,8e,8g#,8b,1c#6,8f#,8a,8c#6,1e6,8a,8c#6,8e6,1e6,8b,8g#,8a,2b",
   "Bond:d=4,o=5,b=80:32p,16c#6,32d#6,32d#6,16d#6,8d#6,16c#6,16c#6,16c#6,16c#6,32e6,32e6,16e6,8e6,16d#6,16d#6,16d#6,16c#6,32d#6,32d#6,16d#6,8d#6,16c#6,16c#6,16c#6,16c#6,32e6,32e6,16e6,8e6,16d#6,16d6,16c#6,16c#7,c.7,16g#6,16f#6,g#.6",
-  "MASH:d=8,o=5,b=140:4a,4g,f#,g,p,f#,p,g,p,f#,p,2e.,p,f#,e,4f#,e,f#,p,e,p,4d.,p,f#,4e,d,e,p,d,p,e,p,d,p,2c#.,p,d,c#,4d,c#,d,p,e,p,4f#,p,a,p,4b,a,b,p,a,p,b,p,2a.,4p,a,b,a,4b,a,b,p,2a.,a,4f#,a,b,p,d6,p,4e.6,d6,b,p,a,p,2b",
-  "StarWars:d=4,o=5,b=45:32p,32f#,32f#,32f#,8b.,8f#.6,32e6,32d#6,32c#6,8b.6,16f#.6,32e6,32d#6,32c#6,8b.6,16f#.6,32e6,32d#6,32e6,8c#.6,32f#,32f#,32f#,8b.,8f#.6,32e6,32d#6,32c#6,8b.6,16f#.6,32e6,32d#6,32c#6,8b.6,16f#.6,32e6,32d#6,32e6,8c#6",
+  "MASH:d=8,o=5,b=140:4a,4g,f#,g,p,f#,p,g,p,f#,p,2e.,p,f#,e,4f#,e,f#,p,e,p,4d.,p,f#,4e,d,e,p,d,p,e,p,d,p,2c#.,p,d,c#,4d,c#,d,p,e,p,4f#,p,a,p,4b,a,b,p,a,p,b,p,2a.,p,a,b,a,4b,a,b,p,2a.,a,4f#,a,b,p,d6,p,4e.6,d6,b,p,a,p,2b",
+  "StarWars:d=4,o=5,b=45:32p,32f#,32f#,32f#,8b.,8f#.6,32e6,32d#6,32c#6,8b.6,16f#.6,32e6,32d#6,32c#6,8b.6,16f#.6,32e6,32d#6,32c#6,8b.6,16f#.6,32e6,32d#6,32c#6,8b.6,16f#.6,32e6,32d#6,32e6,8c#.6,32f#,32f#,32f#,8b.,8f#.6,32e6,32d#6,32c#6,8b.6,16f#.6,32e6,32d#6,32c#6,8b.6,16f#.6,32e6,32d#6,32e6,8c#6",
   "GoodBad:d=4,o=5,b=56:32p,32a#,32d#6,32a#,32d#6,8a#.,16f#.,16g#.,d#,32a#,32d#6,32a#,32d#6,8a#.,16f#.,16g#.,c#6,32a#,32d#6,32a#,32d#6,8a#.,16f#.,32f.,32d#.,c#,32a#,32d#6,32a#,32d#6,8a#.,16g#.,d#",
   "TopGun:d=4,o=4,b=31:32p,16c#,16g#,16g#,32f#,32f,32f#,32f,16d#,16d#,32c#,32d#,16f,32d#,32f,16f#,32f,32c#,16f,d#,16c#,16g#,16g#,32f#,32f,32f#,32f,16d#,16d#,32c#,32d#,16f,32d#,32f,16f#,32f,32c#,g#",
   "A-Team:d=8,o=5,b=125:4d#6,a#,2d#6,16p,g#,4a#,4d#.,p,16g,16a#,d#6,a#,f6,2d#6,16p,c#.6,16c6,16a#,g#.,2a#",
@@ -43,41 +65,62 @@ var songs = [
   "TakeOnMe:d=4,o=4,b=160:8f#5,8f#5,8f#5,8d5,8p,8b,8p,8e5,8p,8e5,8p,8e5,8g#5,8g#5,8a5,8b5,8a5,8a5,8a5,8e5,8p,8d5,8p,8f#5,8p,8f#5,8p,8f#5,8e5,8e5,8f#5,8e5,8f#5,8f#5,8f#5,8d5,8p,8b,8p,8e5,8p,8e5,8p,8e5,8g#5,8g#5,8a5,8b5,8a5,8a5,8a5,8e5,8p,8d5,8p,8f#5,8p,8f#5,8p,8f#5,8e5,8e5",
 ];
 
+final pb = PocketBase("http://127.0.0.1:8090/");
+
 DateTime appStartAt = DateTime.now();
 
 ValueNotifier<ThemeMode> themeMode = ValueNotifier(ThemeMode.system);
 ValueNotifier<Color> themeColor = ValueNotifier(Colors.teal);
 
 void main() {
-  runApp(const App());
+  runApp(MultiProvider(
+    providers: [
+      ChangeNotifierProvider(create: (_) => AuthProvider(AuthRepositoryImpl())),
+      ChangeNotifierProvider(
+          create: (_) => TrucksProvider(TrucksRepositoryImpl())),
+      ChangeNotifierProvider(
+          create: (_) => TripsProvider(TripsRepositoryImpl())),
+    ],
+    child: const App(),
+  ));
 }
 
 class App extends StatelessWidget {
   const App({super.key});
   @override
   Widget build(BuildContext context) {
+    // Set initial theme color to gold
+    themeColor.value = Colors.amber;
+
     return ListenableBuilder(
-        listenable: Listenable.merge([themeMode, themeColor]),
-        builder: (context, snapshot) {
-          return MaterialApp(
-            title: 'IOT',
-            debugShowCheckedModeBanner: false,
-            theme: ThemeData(
-              colorScheme: ColorScheme.fromSeed(seedColor: themeColor.value),
-              useMaterial3: true,
-              textTheme: GoogleFonts.poppinsTextTheme(),
-            ),
-            darkTheme: ThemeData.dark().copyWith(
-              colorScheme: ColorScheme.fromSeed(
-                  seedColor: themeColor.value, brightness: Brightness.dark),
-              textTheme: GoogleFonts.poppinsTextTheme(
-                ThemeData.dark().textTheme,
+      listenable: Listenable.merge([themeMode, themeColor]),
+      builder: (context, snapshot) {
+        return MaterialApp(
+          title: 'IOT',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.light(themeColor.value),
+          darkTheme: AppTheme.dark(themeColor.value),
+          themeMode: themeMode.value,
+          home: Stack(
+            children: [
+              const Positioned.fill(
+                child: AnimatedBackground(),
               ),
-            ),
-            themeMode: themeMode.value,
-            home: const Home(),
-          );
-        });
+              Consumer<AuthProvider>(
+                builder: (context, auth, _) {
+                  if (!auth.isAuthenticated) {
+                    return const LoginPage();
+                  }
+                  return AppLayout(
+                    child: AppRoute.home.screen,
+                  );
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 }
 
@@ -122,6 +165,153 @@ enum ConnectionType {
   final IconData disconnectedIcon;
 }
 
+class AnimatedStar {
+  double x;
+  double y;
+  double size;
+  double opacity;
+  double speed;
+  double angle;
+
+  AnimatedStar({
+    required this.x,
+    required this.y,
+    required this.size,
+    required this.opacity,
+    required this.speed,
+    required this.angle,
+  });
+}
+
+class SimpleLightPainter extends CustomPainter {
+  final double time;
+  final bool isDarkTheme;
+
+  SimpleLightPainter({
+    required this.time,
+    required this.isDarkTheme,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (isDarkTheme) {
+      _paintDarkTheme(canvas, size);
+    } else {
+      _paintLightTheme(canvas, size);
+    }
+  }
+
+  void _paintLightTheme(Canvas canvas, Size size) {
+    // Simple gradient background
+    final backgroundPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Colors.amber.shade50,
+          Colors.white.withOpacity(0.9),
+        ],
+      ).createShader(Offset.zero & size);
+
+    canvas.drawRect(Offset.zero & size, backgroundPaint);
+
+    // Single moving light beam
+    final beamPosition = size.width * (0.2 + 0.6 * cos(time * 0.2));
+    final beamPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Colors.amber.shade200.withOpacity(0.2),
+          // Colors.transparent,
+        ],
+      ).createShader(Rect.fromLTWH(
+        beamPosition - 200,
+        0,
+        400,
+        size.height,
+      ));
+
+    canvas.drawRect(
+      Rect.fromLTWH(beamPosition - 200, 0, 400, size.height),
+      beamPaint..maskFilter = const MaskFilter.blur(BlurStyle.normal, 80),
+    );
+  }
+
+  void _paintDarkTheme(Canvas canvas, Size size) {
+    // Simple gradient background
+
+    // Single moving light beam
+    final beamPosition = size.width * (0.2 + 0.6 * cos(time * 0.2));
+    final beamPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          Colors.blue.shade200.withOpacity(0.1),
+          // Colors.transparent,
+        ],
+      ).createShader(Rect.fromLTWH(
+        beamPosition - 200,
+        0,
+        400,
+        size.height,
+      ));
+
+    canvas.drawRect(
+      Rect.fromLTWH(beamPosition - 200, 0, 400, size.height),
+      beamPaint..maskFilter = const MaskFilter.blur(BlurStyle.normal, 80),
+    );
+  }
+
+  @override
+  bool shouldRepaint(SimpleLightPainter oldDelegate) => true;
+}
+
+class AnimatedBackground extends StatefulWidget {
+  const AnimatedBackground({super.key});
+
+  @override
+  State<AnimatedBackground> createState() => _AnimatedBackgroundState();
+}
+
+class _AnimatedBackgroundState extends State<AnimatedBackground>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(seconds: 30),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        return CustomPaint(
+          painter: SimpleLightPainter(
+            time: _controller.value * 2 * pi,
+            isDarkTheme: isDark,
+          ),
+        );
+      },
+    );
+  }
+}
+
 class _HomeState extends State<Home> {
   // last try
   DateTime? lastRetry;
@@ -147,30 +337,23 @@ class _HomeState extends State<Home> {
   String get displayValue {
     switch (displayValueKey) {
       case "temperature":
-        return "$temperature °C";
+        return "${temperature.toStringAsFixed(2)} °C";
       case "fahrenheit":
-        return "$fahrenheit °C";
+        return "${fahrenheit.toStringAsFixed(2)} °C";
       case "humidity":
-        return "$humidity %";
+        return "${humidity.toStringAsFixed(2)} %";
       case "heatindexC":
-        return "$heatindexC °C";
+        return "${heatindexC.toStringAsFixed(2)} °C";
       case "heatindexF":
-        return "$heatindexF °C";
+        return "${heatindexF.toStringAsFixed(2)} °C";
       case "tankHeight-distance":
-        return "${tankHeight - distance}";
+        return "${(tankHeight - distance).toStringAsFixed(2)}";
       case "remains":
-        return "${(tankHeight - distance) ~/ (tankHeight / 100)}%";
+        return "${((tankHeight - distance) / (tankHeight / 100)).toStringAsFixed(2)}%";
       default:
-        return "$distance cm";
+        return "${distance.toStringAsFixed(2)} cm";
     }
   }
-
-//      "temperature"=>  "$temperature °C",
-//       "fahrenheit"=>  "$fahrenheit °F",
-//       "humidity"=>  "$humidity %",
-//       "heatindexC"=>  "$heatindexC °C",
-//       "heatindexF"=>  "$heatindexF °F",
-//       "distance"=>  "$distance cm",
 
   List<String> displayValueKeys = const [
     "temperature",
@@ -207,6 +390,7 @@ class _HomeState extends State<Home> {
   late List<num> humidities = [];
   late List<num> distances = [];
   TextEditingController chatController = TextEditingController();
+  double speed = 0;
 
   List<Map<String, String>> messages = [];
   Map<String, dynamic> arduinoData = {};
@@ -214,177 +398,72 @@ class _HomeState extends State<Home> {
   WebSocketChannel? channel;
   StreamSubscription? subscription;
 
+  // Add simulation service
+  final SimulationService _simulation = SimulationService();
+
   @override
   void initState() {
     super.initState();
-    initWebSocket(connectionType);
-    arduinoData.addAll(
-      {
-        "time": time,
-        "ap_ip": ap_ip,
-        "ap_status": ap_status,
-        "wifi_ip": wifi_ip,
-        "wifi_status": wifiStatus,
-        "wifi_ssid": wifiSSID,
-        "readRate": readRate,
-        "notifyRate": notifyRate,
-        "flaged": flaged,
-        "benchmark": benchmark,
-        "distance": distance,
-        "tankHeight": tankHeight,
-        "realDistance": realDistance,
-        "averageDistance": averageDistance,
-        "temperature": temperature,
-        "fahrenheit": fahrenheit,
-        "humidity": humidity,
-        "heatindexC": heatindexC,
-        "heatindexF": heatindexF,
-      },
-    );
+    _simulation.onData = (data) {
+      if (!mounted) return;
+
+      setState(() {
+        arduinoData = data;
+        time = data['time'] ?? 0;
+        ap_ip = data['ap_ip'] ?? "192.168.4.1";
+        ap_status = data['ap_status'] ?? "active";
+        wifi_ip = data['wifi_ip'] ?? "192.168.1.6";
+        wifiStatus = data['wifi_status'] ?? "active";
+        wifiSSID = data['wifi_ssid'] ?? "DJAWEB_IOT";
+        readRate = data['readRate'] ?? 100;
+        notifyRate = data['notifyRate'] ?? 100;
+        flaged = data['flaged'] ?? 0;
+        benchmark = data['benchmark'] ?? 0;
+        distance = data['distance']?.toDouble() ?? 0.0;
+        tankHeight = data['tankHeight']?.toDouble() ?? 200.0;
+        realDistance = data['realDistance']?.toDouble() ?? 0.0;
+        averageDistance = data['averageDistance']?.toDouble() ?? 0.0;
+        temperature = data['temperature']?.toDouble() ?? 0.0;
+        fahrenheit = data['fahrenheit']?.toDouble() ?? 0.0;
+        humidity = data['humidity']?.toDouble() ?? 0.0;
+        heatindexC = data['heatindexC']?.toDouble() ?? 0.0;
+        heatindexF = data['heatindexF']?.toDouble() ?? 0.0;
+        speed = data['speed']?.toDouble() ?? 0.0;
+
+        temperatures.add(temperature);
+        humidities.add(humidity);
+        distances.add(distance);
+
+        if (distances.length > 50) distances.removeAt(0);
+        if (temperatures.length > 50) temperatures.removeAt(0);
+        if (humidities.length > 50) humidities.removeAt(0);
+      });
+    };
+    _simulation.start();
+  }
+
+  @override
+  void dispose() {
+    _simulation.stop();
+    super.dispose();
+  }
+
+  // Replace initWebSocket with simulation toggle
+  void initWebSocket(ConnectionType connectionType) {
+    this.connectionType = connectionType;
+    if (connectionType == ConnectionType.wifi) {
+      wifiConnectionStatus = ConnectionStatus.connected;
+      apConnectionStatus = ConnectionStatus.disconnected;
+    } else {
+      wifiConnectionStatus = ConnectionStatus.disconnected;
+      apConnectionStatus = ConnectionStatus.connected;
+    }
+    setState(() {});
   }
 
   num parseUnsignedInt(dynamic value, num defaultValue) {
     var parsed = num.tryParse(value.toString()) ?? 0;
     return parsed > 0 ? parsed.toInt() : defaultValue;
-  }
-
-  void initWebSocket(ConnectionType connectionType) async {
-    this.connectionType = connectionType;
-    wifiConnectionStatus = ConnectionStatus.disconnected;
-    apConnectionStatus = ConnectionStatus.disconnected;
-
-    if (connectionType == ConnectionType.wifi) {
-      wifiConnectionStatus = ConnectionStatus.connecting;
-      channel?.sink.close();
-      channel = WebSocketChannel.connect(
-        Uri.parse('ws://$wifi_ip/ws'),
-      );
-    } else if (connectionType == ConnectionType.ap) {
-      apConnectionStatus = ConnectionStatus.connecting;
-      channel?.sink.close();
-      channel = WebSocketChannel.connect(
-        Uri.parse('ws://$ap_ip/ws'),
-      );
-    }
-    if (mounted) {
-      setState(() {});
-    }
-
-    subscription?.cancel();
-    try {
-      subscription = channel!.stream.listen(
-        (event) {
-          if (currentConnectionStatus != ConnectionStatus.connected) {
-            ScaffoldMessenger.of(context).hideCurrentSnackBar();
-            ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-              SnackBar(
-                  backgroundColor: Colors.green,
-                  behavior: SnackBarBehavior.floating,
-                  width: 400.0,
-                  content: Text(
-                      'Connected to $currentHost | using ${connectionType == ConnectionType.wifi ? 'wifi' : 'ap'}'),
-                  action: SnackBarAction(
-                    label: 'hide',
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                    },
-                  )),
-            );
-          }
-          if (connectionType == ConnectionType.wifi) {
-            wifiConnectionStatus = ConnectionStatus.connected;
-          } else if (connectionType == ConnectionType.ap) {
-            apConnectionStatus = ConnectionStatus.connected;
-          }
-          final data = jsonDecode(event);
-          arduinoData = data;
-          print(data);
-          setState(() {
-            time = data['time'] ?? time;
-            ap_ip = data['ap_ip'] ?? ap_ip;
-            ap_status = data['ap_status'] ?? ap_status;
-            wifi_ip = data['wifi_ip'] ?? wifi_ip;
-            wifiStatus = data['wifi_status'] ?? wifiStatus;
-            wifiSSID = data['wifi_ssid'] ?? wifiSSID;
-            readRate = data['readRate'] ?? readRate;
-            notifyRate = data['notifyRate'] ?? notifyRate;
-            flaged = data['flaged'] ?? flaged;
-            benchmark = parseUnsignedInt(data['benchmark'], benchmark);
-            //  num.tryParse((data['benchmark'] ?? 0).toStringAsFixed(2)) ?? benchmark;
-            // distance = num.tryParse((data['distance'] ?? 0).toStringAsFixed(2)) ?? distance;
-            distance = parseUnsignedInt(data['distance'], distance);
-            // tankHeight = num.tryParse((data['tankHeight'] ?? 0).toStringAsFixed(2)) ?? tankHeight;
-            tankHeight = parseUnsignedInt(data['tankHeight'], tankHeight);
-            // realDistance = num.tryParse((data['realDistance'] ?? 0).toStringAsFixed(2)) ?? realDistance;
-            realDistance = parseUnsignedInt(data['realDistance'], realDistance);
-            // averageDistance = num.tryParse((data['averageDistance'] ?? 0).toStringAsFixed(2)) ?? averageDistance;
-            averageDistance =
-                parseUnsignedInt(data['averageDistance'], averageDistance);
-            // temperature = num.tryParse((data['temperature'] ?? 0).toStringAsFixed(2)) ?? temperature;
-            temperature = parseUnsignedInt(data['temperature'], temperature);
-            // fahrenheit = num.tryParse((data['fahrenheit'] ?? 0).toStringAsFixed(2)) ?? fahrenheit;
-            fahrenheit = parseUnsignedInt(data['fahrenheit'], fahrenheit);
-            // humidity = num.tryParse((data['humidity'] ?? 0).toStringAsFixed(2)) ?? humidity;
-            fahrenheit = parseUnsignedInt(data['fahrenheit'], fahrenheit);
-            // heatindexC = num.tryParse((data['heatindexC'] ?? 0).toStringAsFixed(2)) ?? heatindexC;
-            heatindexC = parseUnsignedInt(data['heatindexC'], heatindexC);
-            // heatindexF = num.tryParse((data['heatindexF'] ?? 0).toStringAsFixed(2)) ?? heatindexF;
-            heatindexF = parseUnsignedInt(data['heatindexF'], heatindexF);
-            temperatures.add(temperature);
-            humidities.add(humidity);
-            distances.add(distance);
-            if (distances.length > 50) {
-              distances.removeAt(0);
-            }
-            if (temperatures.length > 50) {
-              temperatures.removeAt(0);
-            }
-            if (temperatures.length > 50) {
-              temperatures.removeAt(0);
-            }
-          });
-        },
-        onError: (error) {
-          setState(() {
-            if (connectionType == ConnectionType.wifi) {
-              wifiConnectionStatus = ConnectionStatus.disconnected;
-            } else if (connectionType == ConnectionType.ap) {
-              apConnectionStatus = ConnectionStatus.disconnected;
-            }
-          });
-          ScaffoldMessenger.of(context).hideCurrentSnackBar();
-          ScaffoldMessenger.maybeOf(context)?.showSnackBar(
-            SnackBar(
-                behavior: SnackBarBehavior.floating,
-                width: 400.0,
-                content: Text(
-                    'Failed to connect to $currentHost | using ${connectionType == ConnectionType.wifi ? 'wifi' : 'ap'}'),
-                action: SnackBarAction(
-                  label: 'reconnect',
-                  onPressed: () {
-                    initWebSocket(connectionType);
-                    ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                  },
-                )),
-          );
-          DateTime now = DateTime.now();
-          if (lastRetry == null ||
-              (lastRetry!.difference(now)).abs().inSeconds > 5) {
-            initWebSocket(connectionType == ConnectionType.ap
-                ? ConnectionType.wifi
-                : ConnectionType.ap);
-            lastRetry = now;
-            setState(() {});
-          }
-        },
-        cancelOnError: true,
-      );
-    } catch (e) {
-      print("---------------");
-      print(e);
-      await Future.delayed(Duration(seconds: 2));
-      initWebSocket(connectionType);
-    }
   }
 
   void disconnect() {
@@ -503,24 +582,23 @@ class _HomeState extends State<Home> {
   }
 
   @override
-  void dispose() {
-    subscription?.cancel();
-    channel?.sink.close();
-    super.dispose();
-  }
-
-  @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Stack(
         children: [
+          // Background with blur
           const Positioned.fill(
-            child: SinosoidalMotif(),
+            child: AnimatedBackground(),
           ),
+          BackdropFilter(
+            filter: ImageFilter.blur(sigmaX: 3, sigmaY: 3),
+            child: Container(),
+          ),
+
+          // Your existing content
           SingleChildScrollView(
             child: Center(
               child: Container(
-                // max width 800
                 constraints: const BoxConstraints(maxWidth: 600),
                 child: Column(
                   children: [
@@ -535,37 +613,237 @@ class _HomeState extends State<Home> {
                         ),
                         backgroundColor: Colors.transparent,
                         centerTitle: false,
-                        title: const Text('Hello IOT'),
+                        title: Image.asset(
+                          "assets/images/LOGIC_3.png",
+                          width: 150,
+                          height: 100,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
                         actions: [
                           IconButton(
-                            icon: const Icon(Icons.power_settings_new_rounded),
+                            icon: const Icon(Icons.report_problem_rounded),
                             onPressed: () async {
-                              showDialog(
+                              // showDialog(
+                              //   context: context,
+                              //   builder: (context) {
+                              //     return AlertDialog(
+                              //       title: const Text('Restart'),
+                              //       content: const Text(
+                              //           'Are you sure you want to restart the device?'),
+                              //       actions: [
+                              //         TextButton(
+                              //           onPressed: () {
+                              //             Navigator.pop(context);
+                              //           },
+                              //           child: const Text('Cancel'),
+                              //         ),
+                              //         TextButton.icon(
+                              //           icon: const Icon(Icons.done_all),
+                              //           onPressed: () {
+                              //             restart();
+                              //             Navigator.pop(context);
+                              //           },
+                              //           label: const Text('Restart'),
+                              //         ),
+                              //       ],
+                              //     );
+                              //   },
+                              // );
+
+                              // Add this method in your _HomeState class
+                              showGeneralDialog(
                                 context: context,
-                                builder: (context) {
-                                  return AlertDialog(
-                                    title: const Text('Restart'),
-                                    content: const Text(
-                                        'Are you sure you want to restart the device?'),
-                                    actions: [
-                                      TextButton(
-                                        onPressed: () {
-                                          Navigator.pop(context);
-                                        },
-                                        child: const Text('Cancel'),
+                                pageBuilder:
+                                    (context, animation, secondaryAnimation) {
+                                  return Container(); // Placeholder, won't be used
+                                },
+                                transitionBuilder: (context, animation,
+                                    secondaryAnimation, child) {
+                                  final curvedAnimation = CurvedAnimation(
+                                    parent: animation,
+                                    curve: Curves.easeInOut,
+                                  );
+
+                                  return ScaleTransition(
+                                    scale: Tween<double>(begin: 0.8, end: 1.0)
+                                        .animate(curvedAnimation),
+                                    child: FadeTransition(
+                                      opacity: curvedAnimation,
+                                      child: AlertDialog(
+                                        backgroundColor: Theme.of(context)
+                                            .colorScheme
+                                            .errorContainer,
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(20),
+                                        ),
+                                        title: Row(
+                                          children: [
+                                            Icon(
+                                              Icons.warning_amber_rounded,
+                                              color: Theme.of(context)
+                                                  .colorScheme
+                                                  .error,
+                                              size: 28,
+                                            )
+                                                .animate(
+                                                    onPlay: (controller) =>
+                                                        controller.repeat())
+                                                .shake(duration: 1000.ms),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              'Report Problem',
+                                              style: TextStyle(
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onErrorContainer,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                        content: Container(
+                                          constraints: const BoxConstraints(
+                                              maxWidth: 400),
+                                          child: Column(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              TextField(
+                                                maxLines: 1,
+                                                decoration: InputDecoration(
+                                                  filled: true,
+                                                  fillColor: Theme.of(context)
+                                                      .colorScheme
+                                                      .surface,
+                                                  hintText: 'Title',
+                                                  border: OutlineInputBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            12),
+                                                    borderSide: BorderSide.none,
+                                                  ),
+                                                  prefixIcon:
+                                                      const Icon(Icons.title),
+                                                ),
+                                              ).animate().slideX(
+                                                    begin: -0.2,
+                                                    duration: 400.ms,
+                                                    curve: Curves.easeOut,
+                                                  ),
+                                              const SizedBox(height: 16),
+                                              TextField(
+                                                maxLines: 4,
+                                                decoration: InputDecoration(
+                                                  filled: true,
+                                                  fillColor: Theme.of(context)
+                                                      .colorScheme
+                                                      .surface,
+                                                  hintText:
+                                                      'Describe what happened...',
+                                                  border: OutlineInputBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            12),
+                                                    borderSide: BorderSide.none,
+                                                  ),
+                                                ),
+                                              ).animate().slideX(
+                                                    begin: 0.2,
+                                                    duration: 400.ms,
+                                                    delay: 200.ms,
+                                                    curve: Curves.easeOut,
+                                                  ),
+                                              const SizedBox(height: 16),
+                                              Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.info_outline,
+                                                    size: 16,
+                                                    color: Theme.of(context)
+                                                        .colorScheme
+                                                        .onErrorContainer
+                                                        .withOpacity(0.7),
+                                                  ),
+                                                  const SizedBox(width: 8),
+                                                  Expanded(
+                                                    child: Text(
+                                                      'Your report will help us improve the system',
+                                                      style: TextStyle(
+                                                        fontSize: 12,
+                                                        color: Theme.of(context)
+                                                            .colorScheme
+                                                            .onErrorContainer
+                                                            .withOpacity(0.7),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ).animate().fadeIn(delay: 400.ms),
+                                            ],
+                                          ),
+                                        ),
+                                        actions: [
+                                          TextButton(
+                                            onPressed: () =>
+                                                Navigator.pop(context),
+                                            child: Text(
+                                              'Cancel',
+                                              style: TextStyle(
+                                                color: Theme.of(context)
+                                                    .colorScheme
+                                                    .onErrorContainer,
+                                              ),
+                                            ),
+                                          ),
+                                          FilledButton.icon(
+                                            onPressed: () {
+                                              // Handle report submission here
+                                              Navigator.pop(context);
+                                              ScaffoldMessenger.of(context)
+                                                  .showSnackBar(
+                                                SnackBar(
+                                                  content: const Text(
+                                                      'Report submitted successfully'),
+                                                  behavior:
+                                                      SnackBarBehavior.floating,
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                            10),
+                                                  ),
+                                                ),
+                                              );
+                                            },
+                                            style: FilledButton.styleFrom(
+                                              backgroundColor: Theme.of(context)
+                                                  .colorScheme
+                                                  .error,
+                                              foregroundColor: Theme.of(context)
+                                                  .colorScheme
+                                                  .onError,
+                                            ),
+                                            icon: const Icon(Icons.send),
+                                            label: const Text('Submit Report'),
+                                          ).animate().slideY(
+                                                begin: 0.5,
+                                                duration: 400.ms,
+                                                delay: 200.ms,
+                                                curve: Curves.easeOut,
+                                              ),
+                                        ],
                                       ),
-                                      TextButton.icon(
-                                        icon: const Icon(Icons.done_all),
-                                        onPressed: () {
-                                          restart();
-                                          Navigator.pop(context);
-                                        },
-                                        label: const Text('Restart'),
-                                      ),
-                                    ],
+                                    ),
                                   );
                                 },
+                                transitionDuration:
+                                    const Duration(milliseconds: 400),
                               );
+
+// Update the IconButton in your build method
+                              // IconButton(
+                              //   icon: const Icon(Icons.report_problem_rounded),
+                              //   onPressed: _showDangerReportDialog,
+                              // );
                             },
                           ),
                         ],
@@ -716,7 +994,8 @@ class _HomeState extends State<Home> {
                                               children: [
                                                 const Icon(
                                                     Icons.leak_add_rounded),
-                                                Text('${distance.toInt()}cm'),
+                                                Text(
+                                                    '${distance.toStringAsFixed(2)}KG'),
                                               ],
                                             ),
                                             const SizedBox(
@@ -726,7 +1005,8 @@ class _HomeState extends State<Home> {
                                               children: [
                                                 const Icon(
                                                     Icons.join_full_outlined),
-                                                Text('${tankHeight.toInt()}cm'),
+                                                Text(
+                                                    '${tankHeight.toStringAsFixed(2)}KG'),
                                               ],
                                             ),
                                           ],
@@ -770,19 +1050,6 @@ class _HomeState extends State<Home> {
                                         ),
                                       ),
                                     ),
-                                    // Positioned(
-                                    //   left: 0,
-                                    //   right: 0,
-                                    //   bottom: 0,
-                                    //   height: 20,
-                                    //   child: CustomPaint(
-                                    //     painter: _GriedentGraphPainter(
-                                    //       temperatures:  temperatures,
-                                    //       context: context,
-                                    //       theme2: true
-                                    //     ),
-                                    //   ),
-                                    // ),
                                     MenuAnchor(
                                       menuChildren: [
                                         for (var key in displayValueKeys)
@@ -808,7 +1075,7 @@ class _HomeState extends State<Home> {
                                             children: [
                                               const SizedBox(height: 24),
                                               Text(
-                                                displayValue,
+                                                displayValue.trim(),
                                                 style: Theme.of(context)
                                                     .textTheme
                                                     .headlineMedium!
@@ -875,7 +1142,8 @@ class _HomeState extends State<Home> {
                                                     children: [
                                                       const Icon(Icons
                                                           .device_thermostat_rounded),
-                                                      Text('$temperature °C'),
+                                                      Text(
+                                                          '${temperature.toStringAsFixed(2)} °C'),
                                                     ],
                                                   ),
                                                   const SizedBox(
@@ -885,7 +1153,8 @@ class _HomeState extends State<Home> {
                                                     children: [
                                                       const Icon(
                                                           Icons.water_rounded),
-                                                      Text('$humidity %'),
+                                                      Text(
+                                                          '${humidity.toStringAsFixed(2)} %'),
                                                     ],
                                                   ),
                                                 ],
@@ -904,6 +1173,8 @@ class _HomeState extends State<Home> {
                         ),
                       ),
                     ),
+                    SizedBox(height: 16),
+
                     ListTile(
                       leading: Icon(Icons.data_saver_off_rounded),
                       title: Text('Data from device'),
@@ -1011,71 +1282,108 @@ class _HomeState extends State<Home> {
                                 height: 1,
                               ),
                             ),
-                            ListTile(
-                              onLongPress: () async {
-                                var ip = await showUpdateIpDailog(context,
-                                    ip: ap_ip);
-                                if (ip != null) {
-                                  ap_ip = ip;
-                                  initWebSocket(ConnectionType.ap);
-                                }
-                              },
-                              onTap: () {
-                                if (currentConnectionStatus ==
-                                    ConnectionStatus.connected) {
-                                  disconnect();
-                                  if (connectionType == ConnectionType.wifi) {
-                                    initWebSocket(ConnectionType.ap);
-                                  }
-                                } else {
-                                  initWebSocket(ConnectionType.ap);
-                                }
-                              },
-                              contentPadding:
-                                  const EdgeInsets.symmetric(horizontal: 16),
-                              minVerticalPadding: 0,
-                              leading: apConnectionStatus ==
-                                      ConnectionStatus.connecting
-                                  ? const CircularProgressIndicator.adaptive()
-                                  : Icon(
-                                      apConnectionStatus ==
-                                              ConnectionStatus.connected
-                                          ? ConnectionType.ap.connectedIcon
-                                          : ConnectionType.ap.disconnectedIcon,
-                                      color: apConnectionStatus.color),
-                              title: Row(
-                                children: [
-                                  const Text('AP IP'),
-                                  const SizedBox(width: 8),
-                                  buildConnect(apConnectionStatus),
-                                  const SizedBox(width: 8),
-                                  Text(ap_status,
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall!
-                                          .copyWith(
-                                              color: Theme.of(context)
-                                                  .colorScheme
-                                                  .onBackground
-                                                  .withOpacity(0.5),
-                                              fontSize: 10)),
-                                ],
-                              ),
-                              subtitle: Text(ap_ip),
-                              trailing: IconButton(
-                                icon: const Icon(Icons.edit),
-                                onPressed: () async {
-                                  var data = await showWifiUpdateDailog(context,
-                                      ssid: "IOT_AP", password: "iotiotiot");
-                                  if (data != null) {
-                                    updateAP(
-                                      ssid: data.ssid,
-                                      password: data.password,
-                                    );
-                                  }
-                                },
+                            // ListTile(
+                            //   onLongPress: () async {
+                            //     var ip = await showUpdateIpDailog(context,
+                            //         ip: ap_ip);
+                            //     if (ip != null) {
+                            //       ap_ip = ip;
+                            //       initWebSocket(ConnectionType.ap);
+                            //     }
+                            //   },
+                            //   onTap: () {
+                            //     if (currentConnectionStatus ==
+                            //         ConnectionStatus.connected) {
+                            //       disconnect();
+                            //       if (connectionType == ConnectionType.wifi) {
+                            //         initWebSocket(ConnectionType.ap);
+                            //       }
+                            //     } else {
+                            //       initWebSocket(ConnectionType.ap);
+                            //     }
+                            //   },
+                            //   contentPadding:
+                            //       const EdgeInsets.symmetric(horizontal: 16),
+                            //   minVerticalPadding: 0,
+                            //   leading: apConnectionStatus ==
+                            //           ConnectionStatus.connecting
+                            //       ? const CircularProgressIndicator.adaptive()
+                            //       : Icon(
+                            //           apConnectionStatus ==
+                            //                   ConnectionStatus.connected
+                            //               ? ConnectionType.ap.connectedIcon
+                            //               : ConnectionType.ap.disconnectedIcon,
+                            //           color: apConnectionStatus.color),
+                            //   title: Row(
+                            //     children: [
+                            //       const Text('AP IP'),
+                            //       const SizedBox(width: 8),
+                            //       buildConnect(apConnectionStatus),
+                            //       const SizedBox(width: 8),
+                            //       Text(ap_status,
+                            //           style: Theme.of(context)
+                            //               .textTheme
+                            //               .bodySmall!
+                            //               .copyWith(
+                            //                   color: Theme.of(context)
+                            //                       .colorScheme
+                            //                       .onBackground
+                            //                       .withOpacity(0.5),
+                            //                   fontSize: 10)),
+                            //     ],
+                            //   ),
+                            //   subtitle: Text(ap_ip),
+                            //   trailing: IconButton(
+                            //     icon: const Icon(Icons.edit),
+                            //     onPressed: () async {
+                            //       var data = await showWifiUpdateDailog(context,
+                            //           ssid: "IOT_AP", password: "iotiotiot");
+                            //       if (data != null) {
+                            //         updateAP(
+                            //           ssid: data.ssid,
+                            //           password: data.password,
+                            //         );
+                            //       }
+                            //     },
+                            //   ),
+                            // ),
+                            const Padding(
+                              padding: EdgeInsets.only(
+                                  left: kMinInteractiveDimension),
+                              child: Divider(
+                                height: 1,
                               ),
                             ),
+                            // ListTile(
+                            //   onTap: () {
+                            //     updateFlaged(flaged == 1 ? 0 : 1);
+                            //   },
+                            //   contentPadding:
+                            //       const EdgeInsets.symmetric(horizontal: 16),
+                            //   minVerticalPadding: 0,
+                            //   leading: Icon(
+                            //     flaged == 1
+                            //         ? Icons.lightbulb_sharp
+                            //         : Icons.lightbulb_outline_rounded,
+                            //     color: flaged == 1 ? Colors.amber : null,
+                            //   ),
+                            //   title: const Text('Flaged'),
+                            //   subtitle: Text(flaged == 1 ? 'Yes' : 'No'),
+                            //   trailing: Switch(
+                            //     value: flaged == 1,
+                            //     onChanged: (value) {
+                            //       updateFlaged(value ? 1 : 0);
+                            //     },
+                            //     thumbIcon: MaterialStateProperty.all(
+                            //       Icon(
+                            //         flaged == 1
+                            //             ? Icons.light_mode_rounded
+                            //             : Icons.light_mode,
+                            //       ),
+                            //     ),
+                            //   ),
+                            // ),
+
                             const Padding(
                               padding: EdgeInsets.only(
                                   left: kMinInteractiveDimension),
@@ -1084,49 +1392,13 @@ class _HomeState extends State<Home> {
                               ),
                             ),
                             ListTile(
-                              onTap: () {
-                                updateFlaged(flaged == 1 ? 0 : 1);
-                              },
                               contentPadding:
                                   const EdgeInsets.symmetric(horizontal: 16),
                               minVerticalPadding: 0,
-                              leading: Icon(
-                                flaged == 1
-                                    ? Icons.lightbulb_sharp
-                                    : Icons.lightbulb_outline_rounded,
-                                color: flaged == 1 ? Colors.amber : null,
-                              ),
-                              title: const Text('Flaged'),
-                              subtitle: Text(flaged == 1 ? 'Yes' : 'No'),
-                              trailing: Switch(
-                                value: flaged == 1,
-                                onChanged: (value) {
-                                  updateFlaged(value ? 1 : 0);
-                                },
-                                thumbIcon: MaterialStateProperty.all(
-                                  Icon(
-                                    flaged == 1
-                                        ? Icons.light_mode_rounded
-                                        : Icons.light_mode,
-                                  ),
-                                ),
-                              ),
-                            ),
-                            const Padding(
-                              padding: EdgeInsets.only(
-                                  left: kMinInteractiveDimension),
-                              child: Divider(
-                                height: 1,
-                              ),
-                            ),
-                            ListTile(
-                              contentPadding:
-                                  const EdgeInsets.symmetric(horizontal: 16),
-                              minVerticalPadding: 0,
-                              leading: const Icon(Icons.water_drop_outlined),
-                              title: const Text('Distance'),
-                              subtitle:
-                                  Text('$distance cm / max ${tankHeight}%'),
+                              leading: const Icon(Icons.line_weight),
+                              title: const Text('Weight'),
+                              subtitle: Text(
+                                  '${distance.toStringAsFixed(2)} cm / max ${tankHeight}%'),
                               // dialog to update it
                               trailing: IconButton(
                                 icon: const Icon(Icons.edit),
@@ -1202,8 +1474,8 @@ class _HomeState extends State<Home> {
                               minVerticalPadding: 0,
                               leading: const Icon(Icons.thermostat_rounded),
                               title: const Text('Temperature'),
-                              subtitle:
-                                  Text('$temperature °C / $fahrenheit °F'),
+                              subtitle: Text(
+                                  '${temperature.toStringAsFixed(2)} °C / ${fahrenheit.toStringAsFixed(2)} °F'),
                             ),
                             const Padding(
                               padding: EdgeInsets.only(
@@ -1218,7 +1490,8 @@ class _HomeState extends State<Home> {
                               minVerticalPadding: 0,
                               leading: const Icon(Icons.water_rounded),
                               title: const Text('Humidity'),
-                              subtitle: Text('$humidity %'),
+                              subtitle:
+                                  Text('${humidity.toStringAsFixed(2)} %'),
                             ),
                             const Padding(
                               padding: EdgeInsets.only(
@@ -1233,7 +1506,8 @@ class _HomeState extends State<Home> {
                               minVerticalPadding: 0,
                               leading: const Icon(Icons.thermostat_rounded),
                               title: const Text('Heat Index'),
-                              subtitle: Text('$heatindexC °C / $heatindexF °F'),
+                              subtitle: Text(
+                                  '${heatindexC.toStringAsFixed(2)} °C / ${heatindexF.toStringAsFixed(2)} °F'),
                             ),
                             const Padding(
                               padding: EdgeInsets.only(
@@ -1242,32 +1516,177 @@ class _HomeState extends State<Home> {
                                 height: 1,
                               ),
                             ),
-                            ListTile(
-                              contentPadding:
-                                  const EdgeInsets.symmetric(horizontal: 16),
-                              minVerticalPadding: 0,
-                              leading: const Icon(Icons.file_present_outlined),
-                              title: const Text('Read Docs'),
-                              subtitle: Text('all info about the project'),
-                              onTap: () {
-                                Navigator.of(context).push(
-                                  MaterialPageRoute<void>(
-                                    builder: (BuildContext context) =>
-                                        const AboutPage(),
-                                  ),
-                                );
-                              },
+
+                            SizedBox(
+                              height: 10,
                             ),
+                            // L
+                            // istTile(
+                            //   contentPadding:
+                            //       const EdgeInsets.symmetric(horizontal: 16),
+                            //   minVerticalPadding: 0,
+                            //   leading: const Icon(Icons.file_present_outlined),
+                            //   title: const Text('Read Docs'),
+                            //   subtitle: Text('all info about the project'),
+                            //   onTap: () {
+                            //     Navigator.of(context).push(
+                            //       MaterialPageRoute<void>(
+                            //         builder: (BuildContext context) =>
+                            //             const AboutPage(),
+                            //       ),
+                            //     );
+                            //   },
+                            // ),
                           ],
                         ),
                       ),
                     ),
+
                     // advanced
-                    const ListTile(
-                      leading: Icon(Icons.settings),
-                      title: Text('Advanced'),
-                    ),
+                    // const ListTile(
+                    //   leading: Icon(Icons.settings),
+                    //   title: Text('Advanced'),
+                    // ),
 
+                    // Padding(
+                    //   padding: const EdgeInsets.symmetric(horizontal: 16),
+                    //   child: Card(
+                    //     margin: const EdgeInsets.all(0),
+                    //     color: Theme.of(context)
+                    //         .colorScheme
+                    //         .surface
+                    //         .withOpacity(0.7),
+                    //     elevation: 0,
+                    //     shape: RoundedRectangleBorder(
+                    //       borderRadius: BorderRadius.circular(12),
+                    //       side: BorderSide(
+                    //         color: Colors.grey.withOpacity(0.5),
+                    //         width: 1,
+                    //       ),
+                    //     ),
+                    //     child: Column(children: [
+                    //       ListTile(
+                    //         contentPadding:
+                    //             const EdgeInsets.symmetric(horizontal: 16),
+                    //         minVerticalPadding: 0,
+                    //         leading: const Icon(Icons.wifi_protected_setup),
+                    //         title: const Text('Read Rate'),
+                    //         subtitle: Text('$readRate ms'),
+                    //         // two icon buttons + - in range 0 - 2000
+                    //         trailing: Row(
+                    //           mainAxisSize: MainAxisSize.min,
+                    //           children: [
+                    //             IconButton(
+                    //               icon: const Icon(Icons.remove_rounded),
+                    //               onPressed: readRate > 0
+                    //                   ? () => updateReadRate(
+                    //                       math.max(0, readRate - 25))
+                    //                   : null,
+                    //             ),
+                    //             IconButton(
+                    //               icon: const Icon(Icons.add_rounded),
+                    //               onPressed: () =>
+                    //                   updateReadRate(readRate + 25),
+                    //             ),
+                    //           ],
+                    //         ),
+                    //       ),
+                    //       const Padding(
+                    //         padding:
+                    //             EdgeInsets.only(left: kMinInteractiveDimension),
+                    //         child: Divider(
+                    //           height: 1,
+                    //         ),
+                    //       ),
+                    //       ListTile(
+                    //         contentPadding:
+                    //             const EdgeInsets.symmetric(horizontal: 16),
+                    //         minVerticalPadding: 0,
+                    //         leading: const Icon(Icons.rotate_90_degrees_ccw),
+                    //         title: const Text('Notify Rate'),
+                    //         subtitle: Text('$notifyRate ms'),
+                    //         // two icon buttons + - in range 0 - 2000
+                    //         trailing: Row(
+                    //           mainAxisSize: MainAxisSize.min,
+                    //           children: [
+                    //             IconButton(
+                    //               icon: const Icon(Icons.remove_rounded),
+                    //               onPressed: notifyRate > 0
+                    //                   ? () => updateNotifyRate(
+                    //                       math.max(0, notifyRate - 25))
+                    //                   : null,
+                    //             ),
+                    //             IconButton(
+                    //               icon: const Icon(Icons.add_rounded),
+                    //               onPressed: () =>
+                    //                   updateNotifyRate(notifyRate + 25),
+                    //             ),
+                    //           ],
+                    //         ),
+                    //       ),
+                    //       const Padding(
+                    //         padding:
+                    //             EdgeInsets.only(left: kMinInteractiveDimension),
+                    //         child: Divider(
+                    //           height: 1,
+                    //         ),
+                    //       ),
+                    //       ListTile(
+                    //         contentPadding:
+                    //             const EdgeInsets.symmetric(horizontal: 16),
+                    //         minVerticalPadding: 0,
+                    //         leading: const Icon(Icons.audio_file_outlined),
+                    //         title: const Text('Play Audio'),
+                    //         onTap: () {
+                    //           Navigator.of(context).push(
+                    //             MaterialPageRoute<void>(
+                    //               builder: (BuildContext context) => AudioPage(
+                    //                 currentHost: currentHost,
+                    //               ),
+                    //             ),
+                    //           );
+                    //         },
+                    //       ),
+                    //     ]),
+                    //   ),
+                    // ),
+
+                    // const SizedBox(height: 24),
+                    // // copy right
+                    // Padding(
+                    //   padding: const EdgeInsets.symmetric(horizontal: 16),
+                    //   child: Card(
+                    //     margin: const EdgeInsets.all(0),
+                    //     color: Theme.of(context)
+                    //         .colorScheme
+                    //         .surface
+                    //         .withOpacity(0.7),
+                    //     elevation: 0,
+                    //     shape: RoundedRectangleBorder(
+                    //       borderRadius: BorderRadius.circular(12),
+                    //       side: BorderSide(
+                    //         color: Colors.grey.withOpacity(0.5),
+                    //         width: 1,
+                    //       ),
+                    //     ),
+                    //     child: ListTile(
+                    //       leading: const Icon(Icons.info),
+                    //       title: const Text('chat with out bot'),
+                    //       subtitle: const Text('bot'),
+                    //       onTap: () {
+                    //         Navigator.of(context).push(
+                    //           MaterialPageRoute<void>(
+                    //               builder: (BuildContext context) => ChatScreen(
+                    //                     arduinoData: arduinoData,
+                    //                   )),
+                    //         );
+                    //       },
+                    //     ),
+                    //   ),
+                    // ),
+                    SizedBox(
+                      height: 16,
+                    ),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       child: Card(
@@ -1275,7 +1694,7 @@ class _HomeState extends State<Home> {
                         color: Theme.of(context)
                             .colorScheme
                             .surface
-                            .withOpacity(0.7),
+                            .withOpacity(0.5),
                         elevation: 0,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -1284,129 +1703,42 @@ class _HomeState extends State<Home> {
                             width: 1,
                           ),
                         ),
-                        child: Column(children: [
-                          ListTile(
-                            contentPadding:
-                                const EdgeInsets.symmetric(horizontal: 16),
-                            minVerticalPadding: 0,
-                            leading: const Icon(Icons.wifi_protected_setup),
-                            title: const Text('Read Rate'),
-                            subtitle: Text('$readRate ms'),
-                            // two icon buttons + - in range 0 - 2000
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.remove_rounded),
-                                  onPressed: readRate > 0
-                                      ? () => updateReadRate(
-                                          math.max(0, readRate - 25))
-                                      : null,
+                        child: Column(
+                          children: [
+                            ListTile(
+                              leading: Icon(Icons.speed),
+                              title: Text('Vehicle Speed'),
+                              trailing: Text(
+                                speed > 120
+                                    ? 'DANGER'
+                                    : speed > 80
+                                        ? 'WARNING'
+                                        : 'SAFE',
+                                style: TextStyle(
+                                  color: speed > 120
+                                      ? Colors.red
+                                      : speed > 80
+                                          ? Colors.orange
+                                          : Theme.of(context)
+                                              .colorScheme
+                                              .primary,
+                                  fontWeight: FontWeight.bold,
                                 ),
-                                IconButton(
-                                  icon: const Icon(Icons.add_rounded),
-                                  onPressed: () =>
-                                      updateReadRate(readRate + 25),
-                                ),
-                              ],
+                              ),
                             ),
-                          ),
-                          const Padding(
-                            padding:
-                                EdgeInsets.only(left: kMinInteractiveDimension),
-                            child: Divider(
-                              height: 1,
+                            Speedometer(
+                              speed: speed,
+                              maxSpeed: 180,
+                              unit: 'km/h',
                             ),
-                          ),
-                          ListTile(
-                            contentPadding:
-                                const EdgeInsets.symmetric(horizontal: 16),
-                            minVerticalPadding: 0,
-                            leading: const Icon(Icons.rotate_90_degrees_ccw),
-                            title: const Text('Notify Rate'),
-                            subtitle: Text('$notifyRate ms'),
-                            // two icon buttons + - in range 0 - 2000
-                            trailing: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                IconButton(
-                                  icon: const Icon(Icons.remove_rounded),
-                                  onPressed: notifyRate > 0
-                                      ? () => updateNotifyRate(
-                                          math.max(0, notifyRate - 25))
-                                      : null,
-                                ),
-                                IconButton(
-                                  icon: const Icon(Icons.add_rounded),
-                                  onPressed: () =>
-                                      updateNotifyRate(notifyRate + 25),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const Padding(
-                            padding:
-                                EdgeInsets.only(left: kMinInteractiveDimension),
-                            child: Divider(
-                              height: 1,
-                            ),
-                          ),
-                          ListTile(
-                            contentPadding:
-                                const EdgeInsets.symmetric(horizontal: 16),
-                            minVerticalPadding: 0,
-                            leading: const Icon(Icons.audio_file_outlined),
-                            title: const Text('Play Audio'),
-                            onTap: () {
-                              Navigator.of(context).push(
-                                MaterialPageRoute<void>(
-                                  builder: (BuildContext context) => AudioPage(
-                                    currentHost: currentHost,
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
-                        ]),
-                      ),
-                    ),
-
-                    const SizedBox(height: 24),
-                    // copy right
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 16),
-                      child: Card(
-                        margin: const EdgeInsets.all(0),
-                        color: Theme.of(context)
-                            .colorScheme
-                            .surface
-                            .withOpacity(0.7),
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                          side: BorderSide(
-                            color: Colors.grey.withOpacity(0.5),
-                            width: 1,
-                          ),
-                        ),
-                        child: ListTile(
-                          leading: const Icon(Icons.info),
-                          title: const Text('chat with out bot'),
-                          subtitle: const Text('bot'),
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                  builder: (BuildContext context) => ChatScreen(
-                                        arduinoData: arduinoData,
-                                      )),
-                            );
-                          },
+                            SizedBox(height: 16),
+                          ],
                         ),
                       ),
                     ),
 
                     Text(
-                      'MOHAMADLOUNNAS © 2024 | USDB',
+                      'AMINE MENADI © 2024 | USDB',
                       style: Theme.of(context).textTheme.bodySmall!.copyWith(
                             color: Theme.of(context)
                                 .colorScheme
@@ -1807,43 +2139,44 @@ Future<String> showUpdateIpDailog(BuildContext context, {String? ip}) async {
   );
 }
 
-class AboutPage extends StatelessWidget {
-  const AboutPage({super.key});
+// class AboutPage extends StatelessWidget {
+//   const AboutPage({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text("Documents"),
-      ),
-      body: SingleChildScrollView(
-        child: InteractiveViewer(
-          child: Column(
-            children: [
-              for (var i = 0; i <= 13; i++)
-                Container(
-                  padding: const EdgeInsets.only(bottom: 8.0),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxWidth: MediaQuery.of(context).size.width,
-                        ),
-                        child: Image.asset(
-                          "assets/doc/Artboard $i-80.jpg",
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
+//   @override
+//   Widget build(BuildContext context) {
+//     return Column(
+//       children: [
+//         Expanded(
+//           child: SingleChildScrollView(
+//             child: InteractiveViewer(
+//               child: Column(
+//                 children: [
+//                   for (var i = 0; i <= 13; i++)
+//                     Container(
+//                       padding: const EdgeInsets.only(bottom: 8.0),
+//                       child: Row(
+//                         mainAxisAlignment: MainAxisAlignment.center,
+//                         children: [
+//                           ConstrainedBox(
+//                             constraints: BoxConstraints(
+//                               maxWidth: MediaQuery.of(context).size.width,
+//                             ),
+//                             child: Image.asset(
+//                               "assets/doc/Artboard $i-80.jpg",
+//                             ),
+//                           ),
+//                         ],
+//                       ),
+//                     ),
+//                 ],
+//               ),
+//             ),
+//           ),
+//         ),
+//       ],
+//     );
+//   }
+// }
 
 // AudioPage
 class AudioPage extends StatelessWidget {

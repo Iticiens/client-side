@@ -1,6 +1,10 @@
-# iot
+# LOGIC - Logistics Operations & GPS Integrated Control 🚛
 
-A new Flutter project.
+LOGIC is a modern Flutter application designed for logistics and transportation management, featuring real-time truck tracking, order management, and QR code-based verification.
+
+## 📱 Screenshots
+
+Place your screenshots in the following directory structure:
 
 ## Getting Started
 
